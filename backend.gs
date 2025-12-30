@@ -4,10 +4,9 @@
  * 
  * FEATURES:
  * - Automatic Sheet Creation & Tab Setup
+ * - Custom Spreadsheet Menu for Admin Control
  * - Multi-user Concurrency Locking (LockService)
  * - Automatic Admin Account Seeding
- * - Diagnostic GET endpoint for health checks
- * - Flexible CRUD operations for Guests, Finance, and Tasks
  */
 
 const CONFIG = {
@@ -37,35 +36,90 @@ const CONFIG = {
 };
 
 /**
- * Diagnostics & Health Check
+ * TRIGGER: Runs when the Spreadsheet is opened.
+ * Adds the GuestNama menu to the toolbar.
  */
-function doGet(e) {
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('🚀 GuestNama')
+    .addItem('Initialize / Repair Sheets', 'runSetup')
+    .addSeparator()
+    .addItem('Check System Health', 'checkHealth')
+    .addSeparator()
+    .addItem('⚠️ Factory Reset', 'showResetWarning')
+    .addToUi();
+}
+
+/**
+ * Manual setup trigger from the menu
+ */
+function runSetup() {
+  const ui = SpreadsheetApp.getUi();
   try {
     const ss = getOrCreateDatabase();
-    return ContentService.createTextOutput(JSON.stringify({
-      success: true,
-      status: "Operational",
-      databaseId: ss.getId(),
-      sheets: ss.getSheets().map(s => s.getName()),
-      timestamp: new Date().toISOString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      error: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+    ui.alert('✅ Setup Complete', 'The database has been initialized with all required tabs and headers. The admin account (admin@guestnama.com) has been seeded.', ui.ButtonSet.OK);
+  } catch (e) {
+    ui.alert('❌ Setup Failed', e.toString(), ui.ButtonSet.OK);
   }
 }
 
 /**
- * Main API Endpoint
+ * Health Check Utility
+ */
+function checkHealth() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ss.getSheets().map(s => s.getName()).join(', ');
+  
+  const msg = `Database ID: ${ss.getId()}\n\n` +
+              `Active Tabs: ${sheets}\n\n` +
+              `Current Status: Operational\n\n` +
+              `Make sure your Web App is deployed and the URL is set in constants.ts.`;
+              
+  ui.alert('System Health Report', msg, ui.ButtonSet.OK);
+}
+
+/**
+ * Reset Warning Dialog
+ */
+function showResetWarning() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    '⚠️ WARNING: Factory Reset',
+    'This will delete all stored property references and re-initialize the sheets. Existing data in this spreadsheet may be cleared. Are you sure?',
+    ui.ButtonSet.YES_NO
+  );
+
+  if (response == ui.Button.YES) {
+    DEV_RESET_DATABASE();
+    ui.alert('System Reset Success', 'The application properties have been cleared and sheets re-initialized.', ui.ButtonSet.OK);
+  }
+}
+
+/**
+ * Diagnostics API (GET)
+ */
+function doGet(e) {
+  try {
+    const ss = getOrCreateDatabase();
+    return createResponse(true, {
+      status: "Operational",
+      databaseId: ss.getId(),
+      sheets: ss.getSheets().map(s => s.getName()),
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    return createResponse(false, null, err.toString());
+  }
+}
+
+/**
+ * Main API Endpoint (POST)
  */
 function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
-    // Wait for up to 30 seconds for a lock before failing
     lock.waitLock(30000);
-    
     const ss = getOrCreateDatabase();
     const request = JSON.parse(e.postData.contents);
     const { action, payload } = request;
@@ -76,76 +130,58 @@ function doPost(e) {
         addRow(ss, CONFIG.TABS.USERS, payload);
         responseData = { message: "Registration successful" };
         break;
-
       case 'getUsers':
         responseData = getTable(ss, CONFIG.TABS.USERS);
         break;
-
       case 'verifySession':
         const users = getTable(ss, CONFIG.TABS.USERS);
         responseData = users.some(u => u.id === payload.userId);
         break;
-
       case 'getGuests':
         const allGuests = getTable(ss, CONFIG.TABS.GUESTS);
-        responseData = (payload.role === 'ADMIN') 
-          ? allGuests 
-          : allGuests.filter(g => g.userId === payload.userId);
+        responseData = (payload.role === 'ADMIN') ? allGuests : allGuests.filter(g => g.userId === payload.userId);
         break;
-
       case 'addGuest':
         addRow(ss, CONFIG.TABS.GUESTS, payload);
         responseData = { message: "Guest added" };
         break;
-
       case 'deleteGuest':
         deleteRow(ss, CONFIG.TABS.GUESTS, payload.guestId);
         responseData = { message: "Guest removed" };
         break;
-
       case 'updateGuestStatus':
         updateRow(ss, CONFIG.TABS.GUESTS, payload.guestId, { rsvpStatus: payload.status });
         responseData = { message: "Status updated" };
         break;
-
       case 'getFinance':
         responseData = getTable(ss, CONFIG.TABS.FINANCE).filter(f => f.userId === payload.userId);
         break;
-
       case 'addFinance':
         addRow(ss, CONFIG.TABS.FINANCE, payload);
         responseData = { message: "Transaction saved" };
         break;
-
       case 'deleteFinance':
         deleteRow(ss, CONFIG.TABS.FINANCE, payload.financeId);
         responseData = { message: "Transaction removed" };
         break;
-
       case 'getTasks':
         responseData = getTable(ss, CONFIG.TABS.TASKS).filter(t => t.userId === payload.userId);
         break;
-
       case 'addTask':
         addRow(ss, CONFIG.TABS.TASKS, payload);
         responseData = { message: "Task created" };
         break;
-
       case 'updateTask':
-        const { taskId, ...updates } = payload;
-        updateRow(ss, CONFIG.TABS.TASKS, taskId, updates);
+        updateRow(ss, CONFIG.TABS.TASKS, payload.taskId, payload);
         responseData = { message: "Task updated" };
         break;
-
       case 'deleteTask':
         deleteRow(ss, CONFIG.TABS.TASKS, payload.taskId);
         responseData = { message: "Task removed" };
         break;
-
       default:
         throw new Error("Invalid action: " + action);
     }
-
     return createResponse(true, responseData);
   } catch (err) {
     return createResponse(false, null, err.toString());
@@ -158,30 +194,26 @@ function doPost(e) {
  * Ensures Database exists and is properly structured
  */
 function getOrCreateDatabase() {
+  let ss = SpreadsheetApp.getActiveSpreadsheet();
   const props = PropertiesService.getScriptProperties();
-  let ssId = props.getProperty(CONFIG.PROPS_KEY);
-  let ss = null;
-
-  if (ssId) {
-    try {
-      ss = SpreadsheetApp.openById(ssId);
-    } catch (e) {
-      ssId = null; // Reset if invalid
-    }
-  }
-
-  if (!ss) {
-    ss = SpreadsheetApp.create(CONFIG.DB_NAME);
+  
+  // Tag this sheet as our database if not already tagged
+  if (!props.getProperty(CONFIG.PROPS_KEY)) {
     props.setProperty(CONFIG.PROPS_KEY, ss.getId());
+  }
     
-    // Create Sheets and seed initial data
-    Object.keys(CONFIG.HEADERS).forEach((tabName, idx) => {
-      let sheet = ss.getSheetByName(tabName);
-      if (!sheet) {
-        sheet = (idx === 0) ? ss.getSheets()[0].setName(tabName) : ss.insertSheet(tabName);
-      }
-      sheet.clear();
-      sheet.appendRow(CONFIG.HEADERS[tabName]);
+  Object.keys(CONFIG.HEADERS).forEach((tabName, idx) => {
+    let sheet = ss.getSheetByName(tabName);
+    if (!sheet) {
+      sheet = ss.insertSheet(tabName);
+    }
+    
+    // Check if headers exist, if not or if incorrect, set them
+    const currentHeaders = sheet.getRange(1, 1, 1, CONFIG.HEADERS[tabName].length).getValues()[0];
+    const isCorrect = currentHeaders.every((h, i) => h === CONFIG.HEADERS[tabName][i]);
+    
+    if (!isCorrect) {
+      sheet.getRange(1, 1, 1, CONFIG.HEADERS[tabName].length).setValues([CONFIG.HEADERS[tabName]]);
       
       // Styling
       sheet.getRange(1, 1, 1, CONFIG.HEADERS[tabName].length)
@@ -190,32 +222,30 @@ function getOrCreateDatabase() {
            .setFontWeight("bold")
            .setHorizontalAlignment("center");
       sheet.setFrozenRows(1);
+    }
 
-      // Seed Admin if it's the Users table
-      if (tabName === CONFIG.TABS.USERS) {
-        const adminRow = CONFIG.HEADERS.Users.map(h => CONFIG.SEED_ADMIN[h]);
-        sheet.appendRow(adminRow);
-      }
-    });
-  }
+    // Seed Admin if it's the Users table and it's empty
+    if (tabName === CONFIG.TABS.USERS && sheet.getLastRow() === 1) {
+      const adminRow = CONFIG.HEADERS.Users.map(h => CONFIG.SEED_ADMIN[h]);
+      sheet.appendRow(adminRow);
+    }
+  });
 
   return ss;
 }
 
 /**
- * Reads Sheet data and maps to JSON objects
+ * Database Helpers (CRUD)
  */
 function getTable(ss, sheetName) {
   const sheet = ss.getSheetByName(sheetName);
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
-  
   const headers = data.shift();
   return data.map(row => {
     const obj = {};
     headers.forEach((header, i) => {
       let val = row[i];
-      // Basic type normalization
       if (typeof val === 'string') {
         if (val.toLowerCase() === "true") val = true;
         else if (val.toLowerCase() === "false") val = false;
@@ -227,9 +257,6 @@ function getTable(ss, sheetName) {
   });
 }
 
-/**
- * Creates a new record
- */
 function addRow(ss, sheetName, payload) {
   const sheet = ss.getSheetByName(sheetName);
   const headers = CONFIG.HEADERS[sheetName];
@@ -240,14 +267,10 @@ function addRow(ss, sheetName, payload) {
   sheet.appendRow(row);
 }
 
-/**
- * Updates an existing record by ID
- */
 function updateRow(ss, sheetName, id, updates) {
   const sheet = ss.getSheetByName(sheetName);
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       Object.keys(updates).forEach(key => {
@@ -261,9 +284,6 @@ function updateRow(ss, sheetName, id, updates) {
   }
 }
 
-/**
- * Deletes a record by ID
- */
 function deleteRow(ss, sheetName, id) {
   const sheet = ss.getSheetByName(sheetName);
   const data = sheet.getDataRange().getValues();
@@ -275,20 +295,18 @@ function deleteRow(ss, sheetName, id) {
   }
 }
 
-/**
- * Formats JSON response
- */
 function createResponse(success, data, error = null) {
-  const result = { success, data, error };
-  return ContentService.createTextOutput(JSON.stringify(result))
+  return ContentService.createTextOutput(JSON.stringify({ success, data, error }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * Utility: Manually reset the entire database (Development only)
- */
 function DEV_RESET_DATABASE() {
   const props = PropertiesService.getScriptProperties();
   props.deleteProperty(CONFIG.PROPS_KEY);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  Object.keys(CONFIG.TABS).forEach(key => {
+    const sheet = ss.getSheetByName(CONFIG.TABS[key]);
+    if (sheet) ss.deleteSheet(sheet);
+  });
   getOrCreateDatabase();
 }
