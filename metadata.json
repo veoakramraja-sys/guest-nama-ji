@@ -1,0 +1,5 @@
+{
+  "name": "GuestNama Secure Auth",
+  "description": "A high-security multi-user guest management system featuring role-based access control (RBAC), admin analytics, and secure session handling.",
+  "requestFramePermissions": []
+}
