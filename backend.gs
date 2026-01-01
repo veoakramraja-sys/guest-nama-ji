@@ -1,12 +1,6 @@
 
 /**
  * GuestNama Professional Backend - Google Sheets Edition
- * 
- * FEATURES:
- * - Automatic Sheet Creation & Styling
- * - Custom Spreadsheet Menu for Admin Control
- * - Multi-user Concurrency Locking (LockService)
- * - Automatic Demo Data Seeding
  */
 
 const CONFIG = {
@@ -24,7 +18,6 @@ const CONFIG = {
     Finance: ["id", "userId", "description", "amount", "type", "category", "date"],
     Tasks: ["id", "userId", "title", "description", "isCompleted", "dueDate", "priority"]
   },
-  // Default Admin Credentials (SHA-256 for 'admin123')
   SEED_ADMIN: {
     id: "admin-001",
     phone: "03001234567",
@@ -35,10 +28,6 @@ const CONFIG = {
   }
 };
 
-/**
- * TRIGGER: Runs when the Spreadsheet is opened.
- * Adds the GuestNama menu to the toolbar next to Gemini/Help.
- */
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('🚀 GuestNama Admin')
@@ -50,72 +39,42 @@ function onOpen() {
     .addToUi();
 }
 
-/**
- * Manual setup trigger from the menu.
- * Ensures sheets exist, headers are set, and demo data is injected.
- */
 function runSetup() {
   const ui = SpreadsheetApp.getUi();
   try {
     const ss = getOrCreateDatabase();
     seedDemoData(ss);
-    ui.alert('✅ System Initialized', 'Database tabs created, styled, and seeded with demo data. Users now register via Phone Number.', ui.ButtonSet.OK);
+    ui.alert('✅ System Initialized', 'Database tabs created and styled. Phone numbers are now forced to string format for reliability.', ui.ButtonSet.OK);
   } catch (e) {
     ui.alert('❌ Setup Failed', e.toString(), ui.ButtonSet.OK);
   }
 }
 
-/**
- * Health Check Utility
- */
 function checkHealth() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheets = ss.getSheets().map(s => s.getName()).join(', ');
-  const msg = `Database ID: ${ss.getId()}\n\n` +
-              `Active Tabs: ${sheets}\n\n` +
-              `Current Status: Operational\n\n` +
-              `Web App Deployment: Ensure you have deployed this script as a Web App (Anyone access) and updated constants.ts.`;
-  ui.alert('System Health Report', msg, ui.ButtonSet.OK);
+  ui.alert('System Health Report', `Status: Operational\nTabs: ${sheets}`, ui.ButtonSet.OK);
 }
 
-/**
- * Reset Warning Dialog
- */
 function showResetWarning() {
   const ui = SpreadsheetApp.getUi();
-  const response = ui.alert(
-    '⚠️ CRITICAL: Factory Reset',
-    'This will delete all tabs and reset the system. ALL DATA WILL BE LOST. Continue?',
-    ui.ButtonSet.YES_NO
-  );
-
+  const response = ui.alert('⚠️ CRITICAL: Factory Reset', 'Delete all data and reset?', ui.ButtonSet.YES_NO);
   if (response == ui.Button.YES) {
     DEV_RESET_DATABASE();
-    ui.alert('System Wiped', 'Properties cleared and tabs deleted. Run "Initialize" to start fresh.', ui.ButtonSet.OK);
+    ui.alert('System Wiped', 'Ready for new initialization.', ui.ButtonSet.OK);
   }
 }
 
-/**
- * Diagnostics API (GET)
- */
 function doGet(e) {
   try {
     const ss = getOrCreateDatabase();
-    return createResponse(true, {
-      status: "Operational",
-      databaseId: ss.getId(),
-      sheets: ss.getSheets().map(s => s.getName()),
-      timestamp: new Date().toISOString()
-    });
+    return createResponse(true, { status: "Operational", databaseId: ss.getId() });
   } catch (err) {
     return createResponse(false, null, err.toString());
   }
 }
 
-/**
- * Main API Endpoint (POST)
- */
 function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
@@ -190,87 +149,33 @@ function doPost(e) {
   }
 }
 
-/**
- * Ensures Database exists and is properly structured
- */
 function getOrCreateDatabase() {
   let ss = SpreadsheetApp.getActiveSpreadsheet();
-  const props = PropertiesService.getScriptProperties();
-  
-  if (!props.getProperty(CONFIG.PROPS_KEY)) {
-    props.setProperty(CONFIG.PROPS_KEY, ss.getId());
-  }
-    
-  Object.keys(CONFIG.HEADERS).forEach((tabName, idx) => {
+  Object.keys(CONFIG.HEADERS).forEach((tabName) => {
     let sheet = ss.getSheetByName(tabName);
-    if (!sheet) {
-      sheet = ss.insertSheet(tabName);
-    }
-    
-    // Check if headers exist
+    if (!sheet) sheet = ss.insertSheet(tabName);
     const currentHeaders = sheet.getRange(1, 1, 1, CONFIG.HEADERS[tabName].length).getValues()[0];
     const isCorrect = currentHeaders.every((h, i) => h === CONFIG.HEADERS[tabName][i]);
-    
     if (!isCorrect) {
       sheet.getRange(1, 1, 1, CONFIG.HEADERS[tabName].length).setValues([CONFIG.HEADERS[tabName]]);
-      
-      // Styling
-      sheet.getRange(1, 1, 1, CONFIG.HEADERS[tabName].length)
-           .setBackground("#0f172a")
-           .setFontColor("#ffffff")
-           .setFontWeight("bold")
-           .setHorizontalAlignment("center");
+      sheet.getRange(1, 1, 1, CONFIG.HEADERS[tabName].length).setBackground("#0f172a").setFontColor("#ffffff").setFontWeight("bold");
       sheet.setFrozenRows(1);
     }
-
-    // Always seed Admin if Users table is empty
     if (tabName === CONFIG.TABS.USERS && sheet.getLastRow() === 1) {
       const adminRow = CONFIG.HEADERS.Users.map(h => CONFIG.SEED_ADMIN[h]);
       sheet.appendRow(adminRow);
     }
   });
-
   return ss;
 }
 
-/**
- * Seeds Demo Data for a rich initial experience
- */
 function seedDemoData(ss) {
-  // Demo Guests
   const guestSheet = ss.getSheetByName(CONFIG.TABS.GUESTS);
   if (guestSheet.getLastRow() === 1) {
-    const demos = [
-      ["g-001", "admin-001", "Imran Khan", "0300-1234567", "Confirmed", "false", "2024-12-25", "Family", "true", "Lahore", "2", "2", "1", "5", "Relative", "Yes (Has Own Car)", "Self", "Delivered", "VIP Guest"],
-      ["g-002", "admin-001", "Fatima Jinnah", "0311-7654321", "Pending", "false", "2024-12-25", "Friends", "false", "Karachi", "1", "1", "0", "2", "Friend", "No (Need Transport)", "Admin", "Sent", "Awaiting reply"]
-    ];
-    demos.forEach(row => guestSheet.appendRow(row));
-  }
-
-  // Demo Finance
-  const financeSheet = ss.getSheetByName(CONFIG.TABS.FINANCE);
-  if (financeSheet.getLastRow() === 1) {
-    const demos = [
-      ["f-001", "admin-001", "Venue Advance Payment", "50000", "Expense", "Catering", "2024-10-01"],
-      ["f-002", "admin-001", "Gift from Elder", "10000", "Income", "Other", "2024-10-05"]
-    ];
-    demos.forEach(row => financeSheet.appendRow(row));
-  }
-
-  // Demo Tasks
-  const taskSheet = ss.getSheetByName(CONFIG.TABS.TASKS);
-  if (taskSheet.getLastRow() === 1) {
-    const demos = [
-      ["t-001", "admin-001", "Book Catering Service", "Finalize menu and pay advance", "true", "2024-11-01", "High"],
-      ["t-002", "admin-001", "Send Digital Invitations", "WhatsApp links to all guests", "false", "2024-11-15", "Medium"]
-    ];
-    demos.forEach(row => taskSheet.appendRow(row));
+    guestSheet.appendRow(["g-001", "admin-001", "Imran Khan", "03001234567", "Confirmed", "false", "2024-12-25", "Family", "true", "Lahore", "2", "2", "1", "5", "Relative", "Yes (Has Own Car)", "Self", "Delivered", "VIP Guest"]);
   }
 }
 
-/**
- * Database Helpers (CRUD)
- */
 function getTable(ss, sheetName) {
   const sheet = ss.getSheetByName(sheetName);
   const data = sheet.getDataRange().getValues();
@@ -295,7 +200,9 @@ function addRow(ss, sheetName, payload) {
   const sheet = ss.getSheetByName(sheetName);
   const headers = CONFIG.HEADERS[sheetName];
   const row = headers.map(h => {
-    const val = payload[h];
+    let val = payload[h];
+    // CRITICAL: Force phone numbers to be strings in Google Sheets
+    if (h === 'phone' || h === 'userId') return "'" + String(val || '');
     return (val !== undefined && val !== null) ? val : "";
   });
   sheet.appendRow(row);
@@ -310,7 +217,9 @@ function updateRow(ss, sheetName, id, updates) {
       Object.keys(updates).forEach(key => {
         const colIdx = headers.indexOf(key);
         if (colIdx !== -1) {
-          sheet.getRange(i + 1, colIdx + 1).setValue(updates[key]);
+          let val = updates[key];
+          if (key === 'phone') val = "'" + String(val);
+          sheet.getRange(i + 1, colIdx + 1).setValue(val);
         }
       });
       return;
@@ -335,8 +244,6 @@ function createResponse(success, data, error = null) {
 }
 
 function DEV_RESET_DATABASE() {
-  const props = PropertiesService.getScriptProperties();
-  props.deleteProperty(CONFIG.PROPS_KEY);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   Object.keys(CONFIG.TABS).forEach(key => {
     const sheet = ss.getSheetByName(CONFIG.TABS[key]);

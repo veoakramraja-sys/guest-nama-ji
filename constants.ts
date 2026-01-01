@@ -4,7 +4,7 @@ import { UserRole } from './types';
 export const APP_NAME = "GuestNama";
 
 // IMPORTANT: Replace this with your deployed Google Apps Script Web App URL
-export const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwUOEFb2RHfU0_TJfGXThpM21ifEqvtCuNqNMGVtPOQ240EA6xopZNwDZhBWZgFzI7P/exec";
+export const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzwwo8P6wF4nFggChiheSHhc_jcW2xEunp03Zyx8Zp3sOJcOdsR_IzXC-mLqva30zzD/exec";
 
 export const INITIAL_STORAGE_KEY = "guestnama_db_v1";
 

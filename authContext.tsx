@@ -11,9 +11,17 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper to remove all non-digit characters from phone numbers
-// This ensures '0300-1234567' matches '03001234567'
-const normalizePhone = (p: string) => p.replace(/\D/g, '');
+/**
+ * Normalizes phone numbers for comparison.
+ * 1. Removes all non-digit characters.
+ * 2. Removes any leading zeros (e.g., 0349... becomes 349...) 
+ *    to fix the common Google Sheets numeric conversion issue.
+ */
+const normalizePhone = (p: string | number) => {
+  const s = String(p || '');
+  const digits = s.replace(/\D/g, '');
+  return digits.replace(/^0+/, '');
+};
 
 // Proper SHA-256 Password Hashing
 async function hashPassword(password: string): Promise<string> {
@@ -35,19 +43,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('guestnama_session');
   }, []);
 
-  // Check session validity on mount and periodically
   useEffect(() => {
     const initAuth = async () => {
       const savedSession = localStorage.getItem('guestnama_session');
       if (savedSession) {
         try {
           const user = JSON.parse(savedSession);
-          // Verify with backend that this user still exists
           const isValid = await StorageService.verifySession(user.id);
           if (isValid) {
             setState({ user, isAuthenticated: true, isLoading: false });
           } else {
-            console.warn("Session invalidated: User not found in backend.");
             logout();
           }
         } catch (e) {
@@ -60,23 +65,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, [logout]);
 
-  // Heartbeat: Background check every 5 minutes to detect fake/deleted users
   useEffect(() => {
     if (!state.isAuthenticated || !state.user) return;
-
     const interval = setInterval(async () => {
       try {
         const isValid = await StorageService.verifySession(state.user!.id);
         if (!isValid) {
-          console.error("User no longer exists in database. Forced logout.");
           logout();
           window.location.reload();
         }
-      } catch (e) {
-        // Silently fail on network issues to avoid disturbing real users
-      }
+      } catch (e) {}
     }, 300000); 
-
     return () => clearInterval(interval);
   }, [state.isAuthenticated, state.user, logout]);
 
@@ -85,10 +84,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const passHash = await hashPassword(password);
     const users = await StorageService.getUsers();
     
-    // Use String() conversion to handle cases where Google Sheets returns phone as a number
+    // Find user using normalized phone comparison
     const user = users.find(u => {
-      const normalizedDbPhone = normalizePhone(String(u.phone));
-      return (normalizedDbPhone === normalizedInputPhone || String(u.phone) === normalizedInputPhone) && u.passwordHash === passHash;
+      const normalizedDbPhone = normalizePhone(u.phone);
+      return normalizedDbPhone === normalizedInputPhone && u.passwordHash === passHash;
     });
     
     if (user) {
@@ -102,16 +101,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signup = useCallback(async (name: string, phone: string, password: string) => {
     const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) return false;
+
     const users = await StorageService.getUsers();
-    
-    // Ensure phone number is unique (checking against normalized versions)
-    if (users.find(u => normalizePhone(String(u.phone)) === normalizedPhone)) return false;
+    if (users.find(u => normalizePhone(u.phone) === normalizedPhone)) return false;
 
     const passHash = await hashPassword(password);
     const newUser: User & { passwordHash: string } = {
       id: crypto.randomUUID(),
       name,
-      phone: normalizedPhone, // Store digits only for maximum compatibility
+      phone: normalizedPhone, // Store normalized digits
       role: UserRole.USER,
       passwordHash: passHash,
       createdAt: new Date().toISOString()
