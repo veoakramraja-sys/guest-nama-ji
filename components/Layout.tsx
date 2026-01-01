@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../authContext';
 import { UserRole } from '../types';
@@ -47,7 +46,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
   const handleWhatsAppSend = () => {
     if (!feedback.trim()) return;
     const phoneNumber = "923498199472";
-    const encodedText = encodeURIComponent(`*GuestNama Feedback*\n\nUser: ${user?.name}\nEmail: ${user?.email}\n\nMessage:\n${feedback}`);
+    // Fixed: Property 'email' does not exist on type 'User'. Using 'phone' instead.
+    const encodedText = encodeURIComponent(`*GuestNama Feedback*\n\nUser: ${user?.name}\nPhone: ${user?.phone}\n\nMessage:\n${feedback}`);
     window.open(`https://wa.me/${phoneNumber}?text=${encodedText}`, '_blank');
     setFeedback('');
     setSupportModalOpen(false);

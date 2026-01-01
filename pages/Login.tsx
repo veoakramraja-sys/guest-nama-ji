@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../authContext';
-import { Lock, Mail, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, Phone, Loader2, AlertCircle, ArrowRight, Info } from 'lucide-react';
 
 interface LoginProps {
   onSwitch: () => void;
@@ -8,7 +9,7 @@ interface LoginProps {
 
 export const Login: React.FC<LoginProps> = ({ onSwitch }) => {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,14 +19,18 @@ export const Login: React.FC<LoginProps> = ({ onSwitch }) => {
     setError('');
     setIsLoading(true);
     try {
-      // Logic: Password hashing is now handled inside AuthContext using SHA-256
-      const success = await login(email, password);
-      if (!success) setError('Invalid email or password combination.');
+      const success = await login(phone, password);
+      if (!success) setError('Invalid phone number or password.');
     } catch (err) {
       setError('A connection error occurred. Please check your network.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fillDemoCredentials = () => {
+    setPhone('03001234567');
+    setPassword('admin123');
   };
 
   return (
@@ -54,7 +59,26 @@ export const Login: React.FC<LoginProps> = ({ onSwitch }) => {
         <div className="w-full max-w-md">
           <div className="text-center mb-8 lg:mb-10">
             <h2 className="text-2xl lg:text-3xl font-bold text-[#0f172a]">Secure Login</h2>
-            <p className="text-slate-500 mt-2 text-sm lg:text-base">Enter your credentials to continue</p>
+            <p className="text-slate-500 mt-2 text-sm lg:text-base">Enter your phone number to continue</p>
+          </div>
+
+          {/* Demo Hint Box */}
+          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 animate-in slide-in-from-bottom-2 duration-500">
+            <div className="p-2 bg-amber-100 rounded-xl text-amber-600">
+              <Info className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Demo Access</p>
+              <p className="text-xs text-amber-700 leading-relaxed mb-2">
+                Log in with: <span className="font-bold">03001234567</span> / <span className="font-bold">admin123</span>
+              </p>
+              <button 
+                onClick={fillDemoCredentials}
+                className="text-[10px] font-black uppercase text-amber-600 hover:text-amber-700 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                Auto-fill credentials <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 lg:space-y-6">
@@ -66,16 +90,16 @@ export const Login: React.FC<LoginProps> = ({ onSwitch }) => {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Email Address</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Phone Number</label>
               <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
                 <input 
                   required
-                  type="email"
+                  type="tel"
                   className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all shadow-sm"
-                  placeholder="you@domain.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  placeholder="03xx-xxxxxxx"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
                 />
               </div>
             </div>

@@ -1,10 +1,11 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { AuthState, User, UserRole } from './types';
 import { StorageService } from './services/storageService';
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  login: (phone: string, password: string) => Promise<boolean>;
+  signup: (name: string, phone: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -75,10 +76,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [state.isAuthenticated, state.user, logout]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (phone: string, password: string) => {
     const passHash = await hashPassword(password);
     const users = await StorageService.getUsers();
-    const user = users.find(u => u.email === email && u.passwordHash === passHash);
+    // Compare phone number instead of email
+    const user = users.find(u => u.phone === phone && u.passwordHash === passHash);
     
     if (user) {
       const { passwordHash: _, ...userWithoutPassword } = user;
@@ -89,15 +91,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   }, []);
 
-  const signup = useCallback(async (name: string, email: string, password: string) => {
+  const signup = useCallback(async (name: string, phone: string, password: string) => {
     const users = await StorageService.getUsers();
-    if (users.find(u => u.email === email)) return false;
+    // Ensure phone number is unique
+    if (users.find(u => u.phone === phone)) return false;
 
     const passHash = await hashPassword(password);
     const newUser: User & { passwordHash: string } = {
       id: crypto.randomUUID(),
       name,
-      email,
+      phone,
       role: UserRole.USER,
       passwordHash: passHash,
       createdAt: new Date().toISOString()

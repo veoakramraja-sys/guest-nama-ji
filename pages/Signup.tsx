@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../authContext';
-import { User, Mail, Lock, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { User, Phone, Lock, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface SignupProps {
   onSwitch: () => void;
@@ -8,7 +9,7 @@ interface SignupProps {
 
 export const Signup: React.FC<SignupProps> = ({ onSwitch }) => {
   const { signup } = useAuth();
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', password: '', confirm: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,12 +18,12 @@ export const Signup: React.FC<SignupProps> = ({ onSwitch }) => {
     setError('');
     if (formData.password !== formData.confirm) return setError('Passwords do not match');
     if (formData.password.length < 6) return setError('Password must be at least 6 characters');
+    if (formData.phone.length < 10) return setError('Please enter a valid phone number');
 
     setIsLoading(true);
     try {
-      // Logic: Password hashing is now handled inside AuthContext using SHA-256
-      const success = await signup(formData.name, formData.email, formData.password);
-      if (!success) setError('This email is already registered.');
+      const success = await signup(formData.name, formData.phone, formData.password);
+      if (!success) setError('This phone number is already registered.');
     } catch (err) {
       setError('An error occurred during account creation.');
     } finally {
@@ -82,16 +83,16 @@ export const Signup: React.FC<SignupProps> = ({ onSwitch }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Email</label>
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Phone Number</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input 
                   required
-                  type="email"
+                  type="tel"
                   className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none transition-all shadow-sm"
-                  placeholder="you@domain.com"
-                  value={formData.email}
-                  onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
+                  placeholder="03xx-xxxxxxx"
+                  value={formData.phone}
+                  onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))}
                 />
               </div>
             </div>

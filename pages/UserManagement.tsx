@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { StorageService } from '../services/storageService';
 import { User } from '../types';
-import { Mail, Calendar, UserCheck, Shield, Loader2, RefreshCw } from 'lucide-react';
+import { Phone, Calendar, UserCheck, Shield, Loader2, RefreshCw } from 'lucide-react';
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<(User & { passwordHash: string })[]>([]);
@@ -60,7 +60,7 @@ export const UserManagement: React.FC = () => {
                 <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">User Details</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">System Role</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Join Date</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Credentials</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Phone Number</th>
                 <th className="px-6 py-4 text-right"></th>
               </tr>
             </thead>
@@ -94,8 +94,8 @@ export const UserManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-5 text-sm text-slate-600">
                     <div className="flex items-center font-medium">
-                      <Mail className="w-4 h-4 mr-2 text-slate-300" />
-                      {user.email}
+                      <Phone className="w-4 h-4 mr-2 text-slate-300" />
+                      {user.phone}
                     </div>
                   </td>
                   <td className="px-6 py-5 text-right">

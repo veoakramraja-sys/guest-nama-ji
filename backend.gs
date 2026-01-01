@@ -19,7 +19,7 @@ const CONFIG = {
     TASKS: "Tasks"
   },
   HEADERS: {
-    Users: ["id", "email", "name", "role", "createdAt", "passwordHash"],
+    Users: ["id", "phone", "name", "role", "createdAt", "passwordHash"],
     Guests: ["id", "userId", "name", "phone", "rsvpStatus", "checkedIn", "eventDate", "group", "vipStatus", "city", "men", "women", "children", "totalPersons", "relationship", "ownCar", "invitedBy", "invitationSent", "notes"],
     Finance: ["id", "userId", "description", "amount", "type", "category", "date"],
     Tasks: ["id", "userId", "title", "description", "isCompleted", "dueDate", "priority"]
@@ -27,7 +27,7 @@ const CONFIG = {
   // Default Admin Credentials (SHA-256 for 'admin123')
   SEED_ADMIN: {
     id: "admin-001",
-    email: "admin@guestnama.com",
+    phone: "03001234567",
     name: "System Administrator",
     role: "ADMIN",
     createdAt: new Date().toISOString(),
@@ -59,7 +59,7 @@ function runSetup() {
   try {
     const ss = getOrCreateDatabase();
     seedDemoData(ss);
-    ui.alert('✅ System Initialized', 'Database tabs created, styled, and seeded with demo data. You can now use the GuestNama app.', ui.ButtonSet.OK);
+    ui.alert('✅ System Initialized', 'Database tabs created, styled, and seeded with demo data. Users now register via Phone Number.', ui.ButtonSet.OK);
   } catch (e) {
     ui.alert('❌ Setup Failed', e.toString(), ui.ButtonSet.OK);
   }
