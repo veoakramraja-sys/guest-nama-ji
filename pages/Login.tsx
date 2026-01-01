@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../authContext';
-import { Lock, Phone, Loader2, AlertCircle, ArrowRight, Info } from 'lucide-react';
+import { Lock, Phone, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface LoginProps {
   onSwitch: () => void;
@@ -26,11 +26,6 @@ export const Login: React.FC<LoginProps> = ({ onSwitch }) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillDemoCredentials = () => {
-    setPhone('03001234567');
-    setPassword('admin123');
   };
 
   return (
@@ -60,25 +55,6 @@ export const Login: React.FC<LoginProps> = ({ onSwitch }) => {
           <div className="text-center mb-8 lg:mb-10">
             <h2 className="text-2xl lg:text-3xl font-bold text-[#0f172a]">Secure Login</h2>
             <p className="text-slate-500 mt-2 text-sm lg:text-base">Enter your phone number to continue</p>
-          </div>
-
-          {/* Demo Hint Box */}
-          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 animate-in slide-in-from-bottom-2 duration-500">
-            <div className="p-2 bg-amber-100 rounded-xl text-amber-600">
-              <Info className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Demo Access</p>
-              <p className="text-xs text-amber-700 leading-relaxed mb-2">
-                Log in with: <span className="font-bold">03001234567</span> / <span className="font-bold">admin123</span>
-              </p>
-              <button 
-                onClick={fillDemoCredentials}
-                className="text-[10px] font-black uppercase text-amber-600 hover:text-amber-700 transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                Auto-fill credentials <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 lg:space-y-6">
