@@ -11,6 +11,10 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to remove all non-digit characters from phone numbers
+// This ensures '0300-1234567' matches '03001234567'
+const normalizePhone = (p: string) => p.replace(/\D/g, '');
+
 // Proper SHA-256 Password Hashing
 async function hashPassword(password: string): Promise<string> {
   const msgUint8 = new TextEncoder().encode(password);
@@ -77,10 +81,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.isAuthenticated, state.user, logout]);
 
   const login = useCallback(async (phone: string, password: string) => {
+    const normalizedInputPhone = normalizePhone(phone);
     const passHash = await hashPassword(password);
     const users = await StorageService.getUsers();
-    // Compare phone number instead of email
-    const user = users.find(u => u.phone === phone && u.passwordHash === passHash);
+    
+    // Use String() conversion to handle cases where Google Sheets returns phone as a number
+    const user = users.find(u => {
+      const normalizedDbPhone = normalizePhone(String(u.phone));
+      return (normalizedDbPhone === normalizedInputPhone || String(u.phone) === normalizedInputPhone) && u.passwordHash === passHash;
+    });
     
     if (user) {
       const { passwordHash: _, ...userWithoutPassword } = user;
@@ -92,15 +101,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signup = useCallback(async (name: string, phone: string, password: string) => {
+    const normalizedPhone = normalizePhone(phone);
     const users = await StorageService.getUsers();
-    // Ensure phone number is unique
-    if (users.find(u => u.phone === phone)) return false;
+    
+    // Ensure phone number is unique (checking against normalized versions)
+    if (users.find(u => normalizePhone(String(u.phone)) === normalizedPhone)) return false;
 
     const passHash = await hashPassword(password);
     const newUser: User & { passwordHash: string } = {
       id: crypto.randomUUID(),
       name,
-      phone,
+      phone: normalizedPhone, // Store digits only for maximum compatibility
       role: UserRole.USER,
       passwordHash: passHash,
       createdAt: new Date().toISOString()

@@ -20,9 +20,11 @@ export const Login: React.FC<LoginProps> = ({ onSwitch }) => {
     setIsLoading(true);
     try {
       const success = await login(phone, password);
-      if (!success) setError('Invalid phone number or password.');
+      if (!success) {
+        setError('Login failed. Please verify your phone number and password.');
+      }
     } catch (err) {
-      setError('A connection error occurred. Please check your network.');
+      setError('A connection error occurred. Please check your internet.');
     } finally {
       setIsLoading(false);
     }
