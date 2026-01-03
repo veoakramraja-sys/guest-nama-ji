@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../authContext';
 import { StorageService } from '../services/storageService';
 import { Guest } from '../types';
-import { RSVP_STATUSES, RELATIONSHIPS, CAR_STATUS, INVITE_STATUS } from '../constants';
+import { RSVP_STATUSES, GUEST_GROUPS, RELATIONSHIPS, CAR_STATUS, INVITE_STATUS } from '../constants';
 import { 
   Plus, 
   Search, 
@@ -22,7 +22,8 @@ import {
   Mail,
   MailCheck,
   FileText,
-  Download
+  Download,
+  AlertTriangle
 } from 'lucide-react';
 
 type DemographicFilter = 'All' | 'Has Men' | 'Has Women' | 'Has Children';
@@ -36,6 +37,7 @@ export const Guests: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [guestList, setGuestList] = useState<Guest[]>([]);
   const [isFetching, setIsFetching] = useState(true);
+  const [formError, setFormError] = useState('');
 
   const initialFormState: Omit<Guest, 'id' | 'userId' | 'checkedIn' | 'totalPersons'> = {
     name: '',
@@ -196,7 +198,22 @@ export const Guests: React.FC = () => {
 
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
+    
     if (!formData.name.trim() || !user) return;
+    
+    // Validation Fix: Prevent negative counts or empty guests
+    if (formData.men < 0 || formData.women < 0 || formData.children < 0) {
+      setFormError('Guest counts cannot be negative.');
+      return;
+    }
+    
+    const totalCount = formData.men + formData.women + formData.children;
+    if (totalCount === 0) {
+      setFormError('At least one person (Man, Woman, or Child) must be registered.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const newGuest: Guest = {
@@ -204,21 +221,30 @@ export const Guests: React.FC = () => {
         id: crypto.randomUUID(),
         userId: user.id,
         checkedIn: false,
-        totalPersons: (Number(formData.men) || 0) + (Number(formData.women) || 0) + (Number(formData.children) || 0)
+        totalPersons: totalCount
       };
       await StorageService.addGuest(newGuest);
       await refreshGuests();
       setIsFormOpen(false);
       setFormData(initialFormState);
-    } catch (err) { console.error(err); } finally { setIsLoading(false); }
+    } catch (err) { 
+      console.error(err); 
+      setFormError('System synchronization failed. Please try again.');
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   const toggleRsvpStatus = async (guest: Guest) => {
-    const statuses = ['Pending', 'Confirmed', 'Accepted', 'Chances', 'Maybe', 'Declined'] as const;
+    const statuses = RSVP_STATUSES;
     const currentIndex = statuses.indexOf(guest.rsvpStatus as any);
     const nextStatus = statuses[(currentIndex + 1) % statuses.length] as Guest['rsvpStatus'];
     setGuestList(prev => prev.map(g => g.id === guest.id ? { ...g, rsvpStatus: nextStatus } : g));
-    try { await StorageService.updateGuestStatus(guest.id, nextStatus); } catch (err) { refreshGuests(); }
+    try { 
+      await StorageService.updateGuestStatus(guest.id, nextStatus); 
+    } catch (err) { 
+      refreshGuests(); 
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -270,7 +296,13 @@ export const Guests: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          {['All', 'Confirmed', 'Pending', 'Accepted', 'Chances', 'Maybe'].map(status => (
+          <button 
+            onClick={() => setStatusFilter('All')} 
+            className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all whitespace-nowrap ${statusFilter === 'All' ? 'bg-[#0f172a] text-white border-[#0f172a]' : 'bg-white text-slate-400 border-slate-200'}`}
+          >
+            All
+          </button>
+          {RSVP_STATUSES.map(status => (
             <button 
               key={status} 
               onClick={() => setStatusFilter(status)} 
@@ -355,6 +387,13 @@ export const Guests: React.FC = () => {
             </div>
             
             <form onSubmit={handleAddGuest} className="space-y-4 pb-8">
+              {formError && (
+                <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-[10px] font-bold flex items-center gap-2 animate-in fade-in">
+                  <AlertTriangle className="w-4 h-4" />
+                  {formError}
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2">
                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Guest / Family Head</label>
@@ -373,15 +412,15 @@ export const Guests: React.FC = () => {
               <div className="grid grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl">
                  <div className="text-center">
                    <label className="text-[7px] font-black text-slate-400 uppercase">Men</label>
-                   <input type="number" min="0" className="w-full py-2 text-center font-black text-slate-800 bg-white rounded-lg border border-slate-100 outline-none text-[10px]" value={formData.men} onChange={e => setFormData(p => ({ ...p, men: Number(e.target.value) }))} />
+                   <input type="number" min="0" className="w-full py-2 text-center font-black text-slate-800 bg-white rounded-lg border border-slate-100 outline-none text-[10px]" value={formData.men} onChange={e => setFormData(p => ({ ...p, men: Math.max(0, Number(e.target.value)) }))} />
                  </div>
                  <div className="text-center">
                    <label className="text-[7px] font-black text-slate-400 uppercase">Women</label>
-                   <input type="number" min="0" className="w-full py-2 text-center font-black text-slate-800 bg-white rounded-lg border border-slate-100 outline-none text-[10px]" value={formData.women} onChange={e => setFormData(p => ({ ...p, women: Number(e.target.value) }))} />
+                   <input type="number" min="0" className="w-full py-2 text-center font-black text-slate-800 bg-white rounded-lg border border-slate-100 outline-none text-[10px]" value={formData.women} onChange={e => setFormData(p => ({ ...p, women: Math.max(0, Number(e.target.value)) }))} />
                  </div>
                  <div className="text-center">
                    <label className="text-[7px] font-black text-slate-400 uppercase">Kids</label>
-                   <input type="number" min="0" className="w-full py-2 text-center font-black text-slate-800 bg-white rounded-lg border border-slate-100 outline-none text-[10px]" value={formData.children} onChange={e => setFormData(p => ({ ...p, children: Number(e.target.value) }))} />
+                   <input type="number" min="0" className="w-full py-2 text-center font-black text-slate-800 bg-white rounded-lg border border-slate-100 outline-none text-[10px]" value={formData.children} onChange={e => setFormData(p => ({ ...p, children: Math.max(0, Number(e.target.value)) }))} />
                  </div>
               </div>
 
@@ -389,29 +428,25 @@ export const Guests: React.FC = () => {
                 <div>
                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Relationship Category</label>
                   <select className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none font-bold text-[10px]" value={formData.group} onChange={e => setFormData(p => ({ ...p, group: e.target.value as any }))}>
-                    {['Family', 'Friends', 'Colleagues', 'Business', 'Relative', 'Other'].map(g => <option key={g} value={g}>{g}</option>)}
+                    {GUEST_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Transport Required?</label>
                   <select className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none font-bold text-[10px]" value={formData.ownCar} onChange={e => setFormData(p => ({ ...p, ownCar: e.target.value }))}>
-                    <option value="Yes (Has Own Car)">Yes (Has Own Car)</option>
-                    <option value="No (Need Transport)">No (Need Transport)</option>
+                    {CAR_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Current RSVP Status</label>
                   <select className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none font-bold text-[10px]" value={formData.rsvpStatus} onChange={e => setFormData(p => ({ ...p, rsvpStatus: e.target.value as any }))}>
-                    {['Pending', 'Confirmed', 'Accepted', 'Chances', 'Maybe', 'Declined'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {RSVP_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Invitation Status</label>
                   <select className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none font-bold text-[10px]" value={formData.invitationSent} onChange={e => setFormData(p => ({ ...p, invitationSent: e.target.value }))}>
-                    <option value="Not Sent">Not Sent</option>
-                    <option value="Sent">Sent</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Seen">Seen</option>
+                    {INVITE_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               </div>

@@ -15,7 +15,9 @@ import {
   CheckSquare,
   MessageCircle,
   Send,
-  LifeBuoy
+  LifeBuoy,
+  Briefcase,
+  Clock
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -34,6 +36,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.USER, UserRole.ADMIN] },
     { id: 'guests', label: 'Guests', icon: Users, roles: [UserRole.USER, UserRole.ADMIN] },
     { id: 'finance', label: 'Finance', icon: Wallet, roles: [UserRole.USER, UserRole.ADMIN] },
+    { id: 'vendors', label: 'Vendors', icon: Briefcase, roles: [UserRole.USER, UserRole.ADMIN] },
+    { id: 'timeline', label: 'Timeline', icon: Clock, roles: [UserRole.USER, UserRole.ADMIN] },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare, roles: [UserRole.USER, UserRole.ADMIN] },
   ];
 
@@ -80,13 +84,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
             </button>
           </div>
 
-          <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+          <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto no-scrollbar custom-scrollbar">
             {filteredItems.map(item => (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
                 className={`
-                  w-full flex items-center justify-between px-5 py-4 text-sm font-bold rounded-2xl transition-all duration-300 cursor-pointer active:scale-[0.98]
+                  w-full flex items-center justify-between px-5 py-3.5 text-sm font-bold rounded-2xl transition-all duration-300 cursor-pointer active:scale-[0.98]
                   ${activeTab === item.id 
                     ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' 
                     : 'text-slate-400 hover:text-white hover:bg-white/5'}
@@ -121,24 +125,29 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <header className="lg:hidden h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 text-[#0f172a]">
+            <Menu className="w-6 h-6" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-amber-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">G</div>
+            <span className="text-sm font-bold tracking-tight">GuestNama</span>
+          </div>
+          <div className="w-10"></div>
+        </header>
+
         <div className="flex-1 overflow-y-auto p-4 lg:p-12 relative pb-24 lg:pb-12">
           {/* Mobile Profile Header */}
-          <div className="lg:hidden flex items-center justify-between mb-8 pt-4">
+          <div className="hidden lg:flex items-center justify-end mb-8">
              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white font-bold shadow-lg">
-                  {user?.name.charAt(0)}
-                </div>
-                <div>
+                <div className="text-right">
                   <h4 className="text-sm font-bold text-[#0f172a]">{user?.name}</h4>
                   <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">{user?.role}</p>
                 </div>
+                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white font-bold shadow-lg">
+                  {user?.name.charAt(0)}
+                </div>
              </div>
-             <button 
-               className="p-3 bg-white rounded-xl shadow-sm border border-slate-100"
-               onClick={() => setSupportModalOpen(true)}
-             >
-               <LifeBuoy className="w-5 h-5 text-slate-400" />
-             </button>
           </div>
 
           <div className="max-w-6xl mx-auto page-transition">
@@ -149,46 +158,24 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
         {/* MOBILE BOTTOM NAVIGATION BAR */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-2 bg-gradient-to-t from-[#f8fafc] via-[#f8fafc] to-transparent pointer-events-none">
           <div className="bg-[#0f172a]/95 backdrop-blur-xl rounded-[28px] p-2 flex items-center justify-between shadow-2xl border border-white/10 pointer-events-auto">
-            {menuItems.filter(item => item.id !== 'admin-stats' && item.id !== 'user-management').map(item => (
+            {menuItems.filter(item => ['dashboard', 'guests', 'finance', 'vendors', 'timeline'].includes(item.id)).map(item => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={`
-                  flex-1 flex flex-col items-center justify-center py-3 px-1 rounded-2xl transition-all duration-300 relative
-                  ${activeTab === item.id ? 'text-amber-500 scale-110' : 'text-slate-500'}
+                  flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 relative
+                  ${activeTab === item.id ? 'text-amber-500 scale-105' : 'text-slate-500'}
                 `}
               >
-                <item.icon className="w-6 h-6" />
-                <span className={`text-[9px] font-bold mt-1 uppercase tracking-widest ${activeTab === item.id ? 'opacity-100' : 'opacity-0'}`}>
+                <item.icon className="w-5 h-5" />
+                <span className={`text-[8px] font-bold mt-1 uppercase tracking-tighter ${activeTab === item.id ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
                   {item.label}
                 </span>
                 {activeTab === item.id && (
-                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-amber-500 rounded-full shadow-[0_0_10px_#f59e0b]"></div>
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-amber-500 rounded-full"></div>
                 )}
               </button>
             ))}
-            
-            {/* Admin Toggle in Bottom Nav if Admin */}
-            {user?.role === UserRole.ADMIN && (
-               <button
-                onClick={() => setActiveTab(activeTab === 'admin-stats' ? 'dashboard' : 'admin-stats')}
-                className={`
-                  flex-1 flex flex-col items-center justify-center py-3 px-1 rounded-2xl transition-all duration-300
-                  ${activeTab === 'admin-stats' || activeTab === 'user-management' ? 'text-indigo-400 scale-110' : 'text-slate-500'}
-                `}
-              >
-                <ShieldCheck className="w-6 h-6" />
-                <span className="text-[9px] font-bold mt-1 uppercase tracking-widest">Admin</span>
-              </button>
-            )}
-
-            <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
-            <button 
-              onClick={() => { if(confirm("Sign out from system?")) logout(); }}
-              className="flex-1 flex flex-col items-center justify-center py-3 text-slate-500 active:text-rose-500"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
           </div>
         </div>
       </main>

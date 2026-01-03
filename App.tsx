@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './authContext';
 import { Layout } from './components/Layout';
@@ -8,6 +9,8 @@ import { Landing } from './pages/Landing';
 import { Guests } from './pages/Guests';
 import { Finance } from './pages/Finance';
 import { Tasks } from './pages/Tasks';
+import { Vendors } from './pages/Vendors';
+import { Timeline } from './pages/Timeline';
 import { AdminStats } from './pages/AdminStats';
 import { UserManagement } from './pages/UserManagement';
 import { Loader2 } from 'lucide-react';
@@ -38,6 +41,8 @@ const AppContent: React.FC = () => {
       case 'guests': return <Guests />;
       case 'finance': return <Finance />;
       case 'tasks': return <Tasks />;
+      case 'vendors': return <Vendors />;
+      case 'timeline': return <Timeline />;
       case 'admin-stats': return <AdminStats />;
       case 'user-management': return <UserManagement />;
       default: return <Dashboard onNavigateToGuests={() => setActiveTab('guests')} />;

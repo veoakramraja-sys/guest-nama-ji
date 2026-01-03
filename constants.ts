@@ -4,7 +4,7 @@ import { UserRole } from './types';
 export const APP_NAME = "GuestNama";
 
 // IMPORTANT: Replace this with your deployed Google Apps Script Web App URL
-export const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzbX7mGZiohUujXU7XTKHKh4d3yp6pqr4Qdrxk3xT1IQ4bTqaAyEQacih0EWbQ_ItNb/exec";
+export const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyAnw1-QQfZ9TuvgFIGimc5soeu8nqviA1qk8T142KIIYweo3fKMXwpXxco6eocrKlY/exec";
 
 export const INITIAL_STORAGE_KEY = "guestnama_db_v1";
 
@@ -17,8 +17,8 @@ export const DEFAULT_ADMIN = {
   createdAt: new Date('2024-01-01').toISOString()
 };
 
-export const GUEST_GROUPS = ['Family', 'Friends', 'Colleagues', 'Other'] as const;
-export const RSVP_STATUSES = ['Pending', 'Confirmed', 'Declined'] as const;
+export const GUEST_GROUPS = ['Family', 'Friends', 'Colleagues', 'Other', 'Business', 'Relative'] as const;
+export const RSVP_STATUSES = ['Pending', 'Confirmed', 'Accepted', 'Chances', 'Maybe', 'Declined'] as const;
 
 export const RELATIONSHIPS = ['Family', 'Friend', 'Relative', 'Colleague', 'Neighbor'] as const;
 export const CAR_STATUS = ['No (Need Transport)', 'Yes (Has Own Car)'] as const;

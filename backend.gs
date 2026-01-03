@@ -1,7 +1,7 @@
 
 /**
- * GuestNama Enterprise Backend - Professional Edition v2.3
- * Optimized for Mobile High-Density Intelligence, Invitation Tracking & Demo Content
+ * GuestNama Enterprise Backend - Professional Edition v2.5
+ * Loophole Resolution: Ownership Validation, Seed Cleanup & Headcount Integrity
  */
 
 const CONFIG = {
@@ -12,6 +12,8 @@ const CONFIG = {
     GUESTS: "Guests",
     FINANCE: "Finance",
     TASKS: "Tasks",
+    VENDORS: "Vendors",
+    TIMELINE: "Timeline",
     LOGS: "Logs"
   },
   HEADERS: {
@@ -19,6 +21,8 @@ const CONFIG = {
     Guests: ["id", "userId", "name", "phone", "rsvpStatus", "checkedIn", "eventDate", "group", "vipStatus", "invitationRequired", "city", "men", "women", "children", "totalPersons", "relationship", "ownCar", "invitedBy", "invitationSent", "notes"],
     Finance: ["id", "userId", "description", "amount", "type", "category", "date"],
     Tasks: ["id", "userId", "title", "description", "isCompleted", "dueDate", "priority"],
+    Vendors: ["id", "userId", "name", "category", "phone", "status", "budget", "paid"],
+    Timeline: ["id", "userId", "title", "time", "location", "description"],
     Logs: ["timestamp", "userId", "action", "details"]
   },
   SEED_ADMIN: {
@@ -45,12 +49,9 @@ function onOpen() {
 function seedWeddingDemo() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ui = SpreadsheetApp.getUi();
-  const response = ui.alert('Seed Demo Data?', 'This will add wedding-related sample finance and task entries. Continue?', ui.ButtonSet.YES_NO);
+  const response = ui.alert('Seed Demo Data?', 'This will RESET and add wedding-related sample finance, tasks, vendors and timeline entries for the Admin. Continue?', ui.ButtonSet.YES_NO);
   
   if (response == ui.Button.YES) {
-    // We'll target the first user or system user for demo purposes if no user is specified,
-    // but usually this is called via API with a userId. 
-    // This UI trigger is just for manual admin use.
     const systemUserId = CONFIG.SEED_ADMIN.id;
     generateDemoContent(ss, systemUserId);
     ui.alert('Demo content seeded successfully.');
@@ -58,70 +59,34 @@ function seedWeddingDemo() {
 }
 
 function generateDemoContent(ss, userId) {
+  // Clear existing demo data for this specific user to prevent duplication
+  [CONFIG.TABS.FINANCE, CONFIG.TABS.TASKS, CONFIG.TABS.VENDORS, CONFIG.TABS.TIMELINE].forEach(tab => {
+    deleteRowsByUser(ss, tab, userId);
+  });
+
   const financeData = [
     { id: "f-1", userId, description: "Venue Booking Advance", amount: 150000, type: "Expense", category: "Venue", date: "2024-05-01" },
-    { id: "f-2", userId, description: "Bridal Jewelry Deposit", amount: 45000, type: "Expense", category: "Apparel", date: "2024-05-15" },
-    { id: "f-3", userId, description: "Catering Full Payment", amount: 280000, type: "Expense", category: "Food", date: "2024-06-10" },
-    { id: "f-4", userId, description: "Cash Gift from Uncle", amount: 50000, type: "Income", category: "Gift", date: "2024-06-12" },
-    { id: "f-5", userId, description: "Salami Collections", amount: 125000, type: "Income", category: "Gift", date: "2024-06-14" }
+    { id: "f-4", userId, description: "Cash Gift from Uncle", amount: 50000, type: "Income", category: "Gift", date: "2024-06-12" }
   ];
 
   const taskData = [
-    { id: "t-1", userId, title: "Book Wedding Hall & Decorator", description: "Finalize theme and guest seating plan", isCompleted: true, dueDate: "2024-04-15", priority: "High" },
-    { id: "t-2", userId, title: "Hire Wedding Photographer", description: "Portfolio check and booking for 3 days", isCompleted: true, dueDate: "2024-04-20", priority: "High" },
-    { id: "t-3", userId, title: "Finalize Invitation Card Design", description: "Proofread names and dates", isCompleted: false, dueDate: "2024-05-05", priority: "Medium" },
-    { id: "t-4", userId, title: "Order Bridal & Groom Outfits", description: "Visit designer for first measurement", isCompleted: false, dueDate: "2024-05-10", priority: "High" },
-    { id: "t-5", userId, title: "Plan Honeymoon Logistics", description: "Book flights and hotel", isCompleted: false, dueDate: "2024-05-25", priority: "Low" }
+    { id: "t-1", userId, title: "Book Wedding Hall & Decorator", description: "Finalize theme", isCompleted: true, dueDate: "2024-04-15", priority: "High" }
+  ];
+
+  const vendorData = [
+    { id: "v-1", userId, name: "Regency Caterers", category: "Catering", phone: "03211234567", status: "Paid", budget: 350000, paid: 350000 },
+    { id: "v-2", userId, name: "Lumina Studios", category: "Photography", phone: "03459876543", status: "Hired", budget: 120000, paid: 20000 }
+  ];
+
+  const timelineData = [
+    { id: "tl-1", userId, title: "Nikah Ceremony", time: "18:00", location: "Grand Mosque", description: "Family arrival at 17:30" },
+    { id: "tl-2", userId, title: "Dinner / Barat Arrival", time: "20:30", location: "Royal Hall", description: "Cousins to lead the entry" }
   ];
 
   financeData.forEach(item => addRow(ss, CONFIG.TABS.FINANCE, item));
   taskData.forEach(item => addRow(ss, CONFIG.TABS.TASKS, item));
-}
-
-function logAction(userId, action, details) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(CONFIG.TABS.LOGS);
-    if (sheet) {
-      sheet.appendRow([new Date().toISOString(), userId, action, JSON.stringify(details)]);
-    }
-  } catch (e) {
-    console.error("Logging failed", e);
-  }
-}
-
-function checkHealth() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ui = SpreadsheetApp.getUi();
-  let report = "GuestNama System Health Report\n\n";
-  
-  Object.keys(CONFIG.TABS).forEach(key => {
-    const tabName = CONFIG.TABS[key];
-    const sheet = ss.getSheetByName(tabName);
-    const rows = sheet ? sheet.getLastRow() - 1 : 0;
-    report += `• ${tabName}: ${rows} records\n`;
-  });
-  
-  ui.alert('System Integrity Report', report, ui.ButtonSet.OK);
-}
-
-function runSetup() {
-  const ui = SpreadsheetApp.getUi();
-  try {
-    getOrCreateDatabase();
-    ui.alert('✅ System Initialized', 'Database structure verified and secured.', ui.ButtonSet.OK);
-  } catch (e) {
-    ui.alert('❌ Setup Failed', e.toString(), ui.ButtonSet.OK);
-  }
-}
-
-function clearLogs() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(CONFIG.TABS.LOGS);
-  if (sheet && sheet.getLastRow() > 1) {
-    sheet.getRange(2, 1, sheet.getLastRow() - 1, CONFIG.HEADERS.Logs.length).clear();
-    logAction("SYSTEM", "LOG_CLEAR", "Audit log reset");
-  }
+  vendorData.forEach(item => addRow(ss, CONFIG.TABS.VENDORS, item));
+  timelineData.forEach(item => addRow(ss, CONFIG.TABS.TIMELINE, item));
 }
 
 function doPost(e) {
@@ -134,74 +99,93 @@ function doPost(e) {
     let responseData = null;
 
     const actingUser = payload.userId || "GUEST_OR_SYSTEM";
+    
+    // Security: Fetch requester's role to verify admin status
+    const users = getTable(ss, CONFIG.TABS.USERS);
+    const requester = users.find(u => u.id === actingUser);
+    const isAdmin = requester && requester.role === 'ADMIN';
 
     switch (action) {
       case 'signup':
         addRow(ss, CONFIG.TABS.USERS, payload);
-        logAction(payload.id, "SIGNUP", { name: payload.name });
         responseData = { message: "Account Created" };
         break;
       case 'getUsers':
-        responseData = getTable(ss, CONFIG.TABS.USERS);
+        responseData = users;
         break;
       case 'verifySession':
-        const users = getTable(ss, CONFIG.TABS.USERS);
         responseData = users.some(u => u.id === payload.userId);
         break;
       case 'getGuests':
         const allGuests = getTable(ss, CONFIG.TABS.GUESTS);
-        responseData = (payload.role === 'ADMIN') ? allGuests : allGuests.filter(g => g.userId === payload.userId);
+        responseData = (isAdmin) ? allGuests : allGuests.filter(g => g.userId === actingUser);
         break;
       case 'addGuest':
         addRow(ss, CONFIG.TABS.GUESTS, payload);
-        logAction(actingUser, "ADD_GUEST", { guest: payload.name });
         responseData = { message: "Guest Registered" };
         break;
       case 'deleteGuest':
-        deleteRow(ss, CONFIG.TABS.GUESTS, payload.guestId);
-        logAction(actingUser, "DELETE_GUEST", { id: payload.guestId });
+        deleteRowSecure(ss, CONFIG.TABS.GUESTS, payload.guestId, actingUser, isAdmin);
         responseData = { message: "Guest Removed" };
         break;
       case 'updateGuestStatus':
-        updateRow(ss, CONFIG.TABS.GUESTS, payload.guestId, { rsvpStatus: payload.status });
-        logAction(actingUser, "UPDATE_RSVP", { id: payload.guestId, status: payload.status });
+        updateRowSecure(ss, CONFIG.TABS.GUESTS, payload.guestId, { rsvpStatus: payload.status }, actingUser, isAdmin);
         responseData = { message: "RSVP Updated" };
         break;
       case 'getFinance':
-        responseData = getTable(ss, CONFIG.TABS.FINANCE).filter(f => f.userId === payload.userId);
+        responseData = getTable(ss, CONFIG.TABS.FINANCE).filter(f => f.userId === actingUser);
         break;
       case 'addFinance':
         addRow(ss, CONFIG.TABS.FINANCE, payload);
-        logAction(actingUser, "ADD_FINANCE", { desc: payload.description, amount: payload.amount });
         responseData = { message: "Finance Entry Saved" };
         break;
       case 'deleteFinance':
-        deleteRow(ss, CONFIG.TABS.FINANCE, payload.financeId);
-        logAction(actingUser, "DELETE_FINANCE", { id: payload.financeId });
+        deleteRowSecure(ss, CONFIG.TABS.FINANCE, payload.financeId, actingUser, isAdmin);
         responseData = { message: "Entry Deleted" };
         break;
       case 'getTasks':
-        responseData = getTable(ss, CONFIG.TABS.TASKS).filter(t => t.userId === payload.userId);
+        responseData = getTable(ss, CONFIG.TABS.TASKS).filter(t => t.userId === actingUser);
         break;
       case 'addTask':
         addRow(ss, CONFIG.TABS.TASKS, payload);
         responseData = { message: "Task Added" };
         break;
       case 'updateTask':
-        updateRow(ss, CONFIG.TABS.TASKS, payload.taskId, payload);
+        updateRowSecure(ss, CONFIG.TABS.TASKS, payload.taskId, payload, actingUser, isAdmin);
         responseData = { message: "Task Synchronized" };
         break;
       case 'deleteTask':
-        deleteRow(ss, CONFIG.TABS.TASKS, payload.taskId);
+        deleteRowSecure(ss, CONFIG.TABS.TASKS, payload.taskId, actingUser, isAdmin);
         responseData = { message: "Task Purged" };
         break;
-      case 'seedDemo': // NEW: Seeding action
-        generateDemoContent(ss, payload.userId);
-        logAction(payload.userId, "SEED_DEMO", "Wedding demo data created");
+      case 'getVendors':
+        responseData = getTable(ss, CONFIG.TABS.VENDORS).filter(v => v.userId === actingUser);
+        break;
+      case 'addVendor':
+        addRow(ss, CONFIG.TABS.VENDORS, payload);
+        responseData = { message: "Vendor Saved" };
+        break;
+      case 'deleteVendor':
+        deleteRowSecure(ss, CONFIG.TABS.VENDORS, payload.vendorId, actingUser, isAdmin);
+        responseData = { message: "Vendor Removed" };
+        break;
+      case 'getTimeline':
+        responseData = getTable(ss, CONFIG.TABS.TIMELINE).filter(t => t.userId === actingUser);
+        break;
+      case 'addTimeline':
+        addRow(ss, CONFIG.TABS.TIMELINE, payload);
+        responseData = { message: "Event Added" };
+        break;
+      case 'deleteTimeline':
+        deleteRowSecure(ss, CONFIG.TABS.TIMELINE, payload.timelineId, actingUser, isAdmin);
+        responseData = { message: "Event Removed" };
+        break;
+      case 'seedDemo':
+        generateDemoContent(ss, actingUser);
         responseData = { message: "Demo content generated" };
         break;
       case 'healthCheck':
-        responseData = { status: "online", version: "2.3.0", serverTime: new Date().toISOString() };
+        responseData = { status: "online", version: "2.5.0", serverTime: new Date().toISOString() };
         break;
       default:
         throw new Error("Action Restricted: " + action);
@@ -257,6 +241,12 @@ function getTable(ss, sheetName) {
 function addRow(ss, sheetName, payload) {
   const sheet = ss.getSheetByName(sheetName);
   const headers = CONFIG.HEADERS[sheetName];
+  
+  // Logic Fix: Recalculate totalPersons on backend to ensure integrity
+  if (sheetName === CONFIG.TABS.GUESTS) {
+    payload.totalPersons = (Number(payload.men) || 0) + (Number(payload.women) || 0) + (Number(payload.children) || 0);
+  }
+
   const row = headers.map(h => {
     let val = payload[h];
     if (h === 'phone' || h === 'userId' || h === 'id') return "'" + String(val || '');
@@ -265,12 +255,20 @@ function addRow(ss, sheetName, payload) {
   sheet.appendRow(row);
 }
 
-function updateRow(ss, sheetName, id, updates) {
+// Security Fix: Loophole resolution for IDOR (Insecure Direct Object Reference)
+function updateRowSecure(ss, sheetName, id, updates, actingUser, isAdmin) {
   const sheet = ss.getSheetByName(sheetName);
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
+  const userIdIdx = headers.indexOf('userId');
+
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
+      // Security Check: Verify ownership
+      if (!isAdmin && userIdIdx !== -1 && data[i][userIdIdx] !== actingUser) {
+        throw new Error("Security Violation: Unauthorized update request");
+      }
+
       Object.keys(updates).forEach(key => {
         const colIdx = headers.indexOf(key);
         if (colIdx !== -1) {
@@ -284,13 +282,35 @@ function updateRow(ss, sheetName, id, updates) {
   }
 }
 
-function deleteRow(ss, sheetName, id) {
+// Security Fix: Loophole resolution for IDOR
+function deleteRowSecure(ss, sheetName, id, actingUser, isAdmin) {
   const sheet = ss.getSheetByName(sheetName);
   const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const userIdIdx = headers.indexOf('userId');
+
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
+      // Security Check: Verify ownership
+      if (!isAdmin && userIdIdx !== -1 && data[i][userIdIdx] !== actingUser) {
+        throw new Error("Security Violation: Unauthorized deletion request");
+      }
       sheet.deleteRow(i + 1);
       return;
+    }
+  }
+}
+
+function deleteRowsByUser(ss, sheetName, userId) {
+  const sheet = ss.getSheetByName(sheetName);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const userIdIdx = headers.indexOf('userId');
+  if (userIdIdx === -1) return;
+
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (data[i][userIdIdx] === userId) {
+      sheet.deleteRow(i + 1);
     }
   }
 }

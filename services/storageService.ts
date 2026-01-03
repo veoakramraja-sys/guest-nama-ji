@@ -1,5 +1,5 @@
 
-import { User, Guest, UserRole, FinanceEntry, Task } from '../types';
+import { User, Guest, UserRole, FinanceEntry, Task, Vendor, TimelineEvent } from '../types';
 import { BACKEND_URL } from '../constants';
 
 const callBackend = async (action: string, payload: any = {}) => {
@@ -72,5 +72,33 @@ export const StorageService = {
 
   deleteTask: async (taskId: string) => {
     await callBackend('deleteTask', { taskId });
+  },
+
+  getVendors: async (userId: string): Promise<Vendor[]> => {
+    return await callBackend('getVendors', { userId }) || [];
+  },
+
+  addVendor: async (vendor: Vendor) => {
+    await callBackend('addVendor', vendor);
+  },
+
+  deleteVendor: async (vendorId: string) => {
+    await callBackend('deleteVendor', { vendorId });
+  },
+
+  getTimeline: async (userId: string): Promise<TimelineEvent[]> => {
+    return await callBackend('getTimeline', { userId }) || [];
+  },
+
+  addTimeline: async (event: TimelineEvent) => {
+    await callBackend('addTimeline', event);
+  },
+
+  deleteTimeline: async (timelineId: string) => {
+    await callBackend('deleteTimeline', { timelineId });
+  },
+
+  seedDemo: async (userId: string) => {
+    return await callBackend('seedDemo', { userId });
   }
 };

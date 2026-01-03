@@ -55,6 +55,26 @@ export interface Task {
   priority: 'Low' | 'Medium' | 'High';
 }
 
+export interface Vendor {
+  id: string;
+  userId: string;
+  name: string;
+  category: string;
+  phone: string;
+  status: 'Hired' | 'Shortlisted' | 'Paid' | 'Negotiating';
+  budget: number;
+  paid: number;
+}
+
+export interface TimelineEvent {
+  id: string;
+  userId: string;
+  title: string;
+  time: string;
+  location: string;
+  description: string;
+}
+
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -66,4 +86,6 @@ export interface StorageSchema {
   guests: Guest[];
   finance: FinanceEntry[];
   tasks: Task[];
+  vendors: Vendor[];
+  timeline: TimelineEvent[];
 }
