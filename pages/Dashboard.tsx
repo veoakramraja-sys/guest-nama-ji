@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../authContext';
 import { StorageService } from '../services/storageService';
 import { Guest, FinanceEntry, Task } from '../types';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { 
   Users, 
   RefreshCw,
@@ -14,7 +15,11 @@ import {
   Clock,
   Check,
   Loader2,
-  ArrowRight
+  ArrowRight,
+  User,
+  UserPlus,
+  Baby,
+  Activity
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -24,7 +29,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
   const { user } = useAuth();
   const [data, setData] = useState({ 
-    guestStats: { total: 0, confirmed: 0, checkedIn: 0 },
+    guestStats: { total: 0, confirmed: 0, checkedIn: 0, men: 0, women: 0, children: 0 },
     financeStats: { income: 0, expenses: 0, balance: 0 },
     taskStats: { total: 0, completed: 0, percentage: 0 },
     recentGuests: [] as Guest[],
@@ -51,11 +56,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
       const completedTasks = tasks.filter(t => t.isCompleted).length;
       const totalTasks = tasks.length;
 
+      const men = guests.reduce((acc, g) => acc + (Number(g.men) || 0), 0);
+      const women = guests.reduce((acc, g) => acc + (Number(g.women) || 0), 0);
+      const children = guests.reduce((acc, g) => acc + (Number(g.children) || 0), 0);
+
       setData({
         guestStats: {
           total: guests.length,
           confirmed: guests.filter(g => g.rsvpStatus === 'Confirmed').length,
           checkedIn: guests.filter(g => g.checkedIn).length,
+          men,
+          women,
+          children
         },
         financeStats: {
           income,
@@ -83,6 +95,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
     fetchData();
   }, [user]);
 
+  const demographicChartData = useMemo(() => [
+    { name: 'Men', value: data.guestStats.men, color: '#6366f1' },
+    { name: 'Women', value: data.guestStats.women, color: '#f43f5e' },
+    { name: 'Children', value: data.guestStats.children, color: '#f59e0b' },
+  ].filter(d => d.value > 0), [data.guestStats]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Confirmed': return 'text-emerald-500 bg-emerald-50';
@@ -94,124 +112,195 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
   if (data.isLoading && data.guestStats.total === 0) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400">
-        <Loader2 className="w-10 h-10 animate-spin text-amber-500 mb-4" />
-        <p className="font-bold tracking-tight">Syncing Event Data...</p>
+        <Loader2 className="w-12 h-12 animate-spin text-amber-500 mb-6" />
+        <p className="font-black tracking-widest uppercase text-xs">Syncing Intelligence Cloud...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500 pb-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="space-y-10 animate-in fade-in duration-700 pb-16">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-[#0f172a]">Event Overview</h1>
-          <p className="text-slate-500 mt-1">Real-time pulse of your event management</p>
+          <h1 className="text-4xl font-black text-[#0f172a] tracking-tight">Intelligence Hub</h1>
+          <p className="text-slate-500 mt-2 font-medium flex items-center gap-2">
+            <Activity className="w-4 h-4 text-emerald-500" /> Real-time status of your event ecosystem
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => fetchData(true)}
-            title="Refresh Data"
-            className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-amber-500 hover:border-amber-200 transition-all shadow-sm active:scale-95 cursor-pointer"
-          >
-            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin text-amber-500' : ''}`} />
-          </button>
-        </div>
+        <button 
+          onClick={() => fetchData(true)}
+          className="group flex items-center gap-3 px-6 py-4 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-amber-500 hover:border-amber-200 transition-all shadow-sm active:scale-95 cursor-pointer"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-amber-500' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+          <span className="text-xs font-black uppercase tracking-widest">Refresh Data</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Guests" value={data.guestStats.total} subtitle={`${data.guestStats.confirmed} Confirmed`} icon={<Users className="w-5 h-5 text-blue-500" />} color="hover:border-blue-200" />
-        <StatCard title="Net Balance" value={`Rs. ${data.financeStats.balance.toLocaleString('en-PK')}`} subtitle="Revenue vs Cost" icon={<Wallet className="w-5 h-5 text-emerald-500" />} color="hover:border-emerald-200" />
-        <StatCard title="Check-ins" value={data.guestStats.checkedIn} subtitle="Arrived at venue" icon={<CheckSquare className="w-5 h-5 text-amber-500" />} color="hover:border-amber-200" />
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between group transition-all hover:border-indigo-200">
-          <div className="flex justify-between items-start mb-4">
+        <StatCard title="Total Families" value={data.guestStats.total} subtitle={`${data.guestStats.confirmed} Confirmed`} icon={<Users className="w-5 h-5 text-indigo-500" />} color="hover:border-indigo-200 shadow-indigo-100" />
+        <StatCard title="Wallet Balance" value={`Rs. ${data.financeStats.balance.toLocaleString('en-PK')}`} subtitle="Net Liquidity" icon={<Wallet className="w-5 h-5 text-emerald-500" />} color="hover:border-emerald-200 shadow-emerald-100" />
+        <StatCard title="Check-ins" value={data.guestStats.checkedIn} subtitle="Guest Arrivals" icon={<CheckSquare className="w-5 h-5 text-amber-500" />} color="hover:border-amber-200 shadow-amber-100" />
+        <div className="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between group transition-all hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-50">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Task Progress</p>
-              <h3 className="text-3xl font-bold text-[#0f172a]">{data.taskStats.percentage}%</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Action Progress</p>
+              <h3 className="text-3xl font-black text-[#0f172a] tracking-tighter">{data.taskStats.percentage}%</h3>
             </div>
-            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all shadow-inner">
+            <div className="w-11 h-11 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner group-hover:scale-110 transition-transform">
               <CheckSquare className="w-5 h-5" />
             </div>
           </div>
-          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-            <div className="bg-indigo-500 h-full transition-all duration-1000" style={{ width: `${data.taskStats.percentage}%` }}></div>
+          <div className="space-y-2">
+            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden shadow-inner">
+              <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full transition-all duration-1000 ease-out" style={{ width: `${data.taskStats.percentage}%` }}></div>
+            </div>
+            <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+              <span>{data.taskStats.completed} Done</span>
+              <span>{data.taskStats.total} Total</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm hover:border-emerald-200 transition-all group">
-          <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-inner">
-            <TrendingUp className="w-6 h-6" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white rounded-[40px] border border-slate-200 shadow-xl shadow-slate-200/40 p-8 lg:p-10 flex flex-col md:flex-row items-center gap-10">
+          <div className="w-full md:w-1/2 h-[300px] relative">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Population</p>
+                <p className="text-4xl font-black text-[#0f172a] tracking-tighter">{(data.guestStats.men + data.guestStats.women + data.guestStats.children)}</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={demographicChartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={85}
+                  outerRadius={110}
+                  paddingAngle={8}
+                  dataKey="value"
+                  animationBegin={0}
+                  animationDuration={1500}
+                >
+                  {demographicChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} className="outline-none" />
+                  ))}
+                </Pie>
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: '800' }}
+                  itemStyle={{ padding: '4px 0' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-          <div>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest group-hover:text-slate-600">Total Revenue</p>
-            <h4 className="text-xl font-bold text-emerald-600">Rs. {data.financeStats.income.toLocaleString('en-PK')}</h4>
+          
+          <div className="w-full md:w-1/2 space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-[#0f172a] tracking-tight">Audience Breakdown</h2>
+              <p className="text-slate-400 text-sm font-medium">Demographic composition of your guest list</p>
+            </div>
+            <div className="space-y-4">
+              <DemoRow icon={<User className="w-4 h-4" />} label="Men" count={data.guestStats.men} color="bg-indigo-500" total={data.guestStats.men + data.guestStats.women + data.guestStats.children} />
+              <DemoRow icon={<UserPlus className="w-4 h-4" />} label="Women" count={data.guestStats.women} color="bg-rose-500" total={data.guestStats.men + data.guestStats.women + data.guestStats.children} />
+              <DemoRow icon={<Baby className="w-4 h-4" />} label="Children" count={data.guestStats.children} color="bg-amber-500" total={data.guestStats.men + data.guestStats.women + data.guestStats.children} />
+            </div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm hover:border-rose-200 transition-all group">
-          <div className="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all shadow-inner">
-            <TrendingDown className="w-6 h-6" />
+
+        <div className="bg-[#0f172a] rounded-[40px] p-8 lg:p-10 text-white relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="relative z-10">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Financial Summary</p>
+            <div className="space-y-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500"><TrendingUp className="w-5 h-5" /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Revenue</p>
+                    <p className="text-xl font-bold tracking-tight">Rs. {data.financeStats.income.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center text-rose-500"><TrendingDown className="w-5 h-5" /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Expenses</p>
+                    <p className="text-xl font-bold tracking-tight">Rs. {data.financeStats.expenses.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest group-hover:text-slate-600">Total Expenses</p>
-            <h4 className="text-xl font-bold text-rose-600">Rs. {data.financeStats.expenses.toLocaleString('en-PK')}</h4>
+          <div className="mt-12 pt-8 border-t border-white/5 relative z-10">
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Platform Status</p>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-sm font-bold text-emerald-500">System Healthy</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-          <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-            <h2 className="font-bold text-[#0f172a] flex items-center gap-2">
-              <Users className="w-5 h-5 text-amber-500" /> Recent Guests
+        <div className="bg-white rounded-[40px] border border-slate-200 shadow-xl shadow-slate-200/20 flex flex-col overflow-hidden group">
+          <div className="p-8 lg:px-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/20">
+            <h2 className="font-black text-[#0f172a] flex items-center gap-3 tracking-tight">
+              <Users className="w-6 h-6 text-amber-500" /> Recent Activity
             </h2>
             <button 
               onClick={onNavigateToGuests} 
-              className="text-xs font-bold text-amber-500 hover:text-amber-600 flex items-center gap-1 group/btn cursor-pointer transition-colors"
+              className="text-xs font-black text-amber-500 hover:text-amber-600 flex items-center gap-2 group/btn cursor-pointer uppercase tracking-widest"
             >
-              View All <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
+              Directory <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
             </button>
           </div>
-          <div className="p-6 divide-y divide-slate-50">
+          <div className="p-4 lg:p-6 divide-y divide-slate-50">
             {data.recentGuests.length > 0 ? data.recentGuests.map(guest => (
-              <div key={guest.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between group/row hover:bg-slate-50/50 -mx-6 px-6 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-bold text-slate-400 shadow-inner group-hover/row:bg-white transition-colors">{guest.name.charAt(0)}</div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">{guest.name}</p>
-                    <p className="text-[10px] text-slate-400">{guest.city}</p>
+              <div key={guest.id} className="py-5 px-4 flex items-center justify-between group/row hover:bg-slate-50/80 rounded-2xl transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-2xl bg-white border border-slate-100 flex items-center justify-center font-black text-slate-400 shadow-sm group-hover/row:scale-110 group-hover/row:border-amber-200 transition-all">{guest.name.charAt(0)}</div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-slate-800 truncate">{guest.name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{guest.city}</p>
                   </div>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${getStatusColor(guest.rsvpStatus)}`}>{guest.rsvpStatus}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-lg">{guest.totalPersons}P</span>
+                  <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${getStatusColor(guest.rsvpStatus)}`}>{guest.rsvpStatus}</span>
+                </div>
               </div>
-            )) : <p className="text-center py-10 text-slate-400 text-sm italic">No guests yet.</p>}
+            )) : <p className="text-center py-16 text-slate-400 text-sm font-bold uppercase tracking-widest">No activity log found.</p>}
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-          <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-            <h2 className="font-bold text-[#0f172a] flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-indigo-500" /> Action Items
+        <div className="bg-white rounded-[40px] border border-slate-200 shadow-xl shadow-slate-200/20 flex flex-col overflow-hidden group">
+          <div className="p-8 lg:px-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/20">
+            <h2 className="font-black text-[#0f172a] flex items-center gap-3 tracking-tight">
+              <AlertCircle className="w-6 h-6 text-indigo-500" /> Event Readiness
             </h2>
           </div>
-          <div className="p-6 divide-y divide-slate-50">
+          <div className="p-4 lg:p-6 divide-y divide-slate-50">
             {data.urgentTasks.length > 0 ? data.urgentTasks.map(task => (
-              <div key={task.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between group/task hover:bg-slate-50/50 -mx-6 px-6 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${task.priority === 'High' ? 'bg-rose-500' : 'bg-amber-500'} shadow-[0_0_8px_rgba(244,63,94,0.4)]`} />
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">{task.title}</p>
-                    <p className="text-[10px] text-slate-400 flex items-center gap-1 font-medium"><Clock className="w-3 h-3" /> {task.dueDate}</p>
+              <div key={task.id} className="py-5 px-4 flex items-center justify-between group/task hover:bg-slate-50/80 rounded-2xl transition-all">
+                <div className="flex items-center gap-4">
+                  <div className={`w-3 h-3 rounded-full ${task.priority === 'High' ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'} shadow-lg`} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-slate-800 truncate">{task.title}</p>
+                    <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1.5 uppercase tracking-widest mt-0.5"><Clock className="w-3 h-3" /> Due {task.dueDate}</p>
                   </div>
                 </div>
-                <div className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${task.priority === 'High' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>{task.priority}</div>
+                <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] shadow-sm ${task.priority === 'High' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>{task.priority}</div>
               </div>
             )) : (
-              <div className="flex flex-col items-center justify-center py-10">
-                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 mb-4 shadow-inner">
-                  <Check className="w-6 h-6" />
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-20 h-20 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center text-emerald-500 mb-6 shadow-inner animate-bounce">
+                  <Check className="w-8 h-8" strokeWidth={3} />
                 </div>
-                <p className="text-slate-400 text-sm font-bold">All clear!</p>
+                <p className="text-[#0f172a] text-sm font-black uppercase tracking-[0.2em]">Operational Perfection</p>
+                <p className="text-slate-400 text-xs mt-1">All pre-event objectives met</p>
               </div>
             )}
           </div>
@@ -222,12 +311,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
 };
 
 const StatCard = ({ title, value, subtitle, icon, color }: any) => (
-  <div className={`bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all duration-300 flex items-start justify-between group cursor-default ${color} hover:shadow-lg`}>
-    <div className="flex-1">
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 group-hover:text-slate-600">{title}</p>
-      <h3 className="text-3xl font-black text-[#0f172a] mb-1 tracking-tight">{value}</h3>
-      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{subtitle}</p>
+  <div className={`bg-white p-7 rounded-[32px] border border-slate-200 shadow-sm transition-all duration-500 flex flex-col justify-between group cursor-default ${color} hover:-translate-y-2 hover:shadow-2xl`}>
+    <div className="flex justify-between items-start mb-6">
+      <div className="w-11 h-11 bg-slate-50 group-hover:bg-white rounded-2xl flex items-center justify-center shrink-0 transition-all shadow-inner border border-transparent group-hover:border-slate-100 group-hover:shadow-lg">{icon}</div>
+      <div className="px-2 py-0.5 rounded-lg bg-slate-50 text-[9px] font-black text-slate-400 group-hover:bg-white group-hover:text-slate-600 transition-colors uppercase tracking-widest">Live</div>
     </div>
-    <div className="w-10 h-10 bg-slate-50 group-hover:bg-white rounded-xl flex items-center justify-center shrink-0 transition-all shadow-inner border border-transparent group-hover:border-slate-100 group-hover:shadow-md">{icon}</div>
+    <div>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 transition-colors group-hover:text-slate-600">{title}</p>
+      <h3 className="text-3xl font-black text-[#0f172a] tracking-tighter mb-1.5">{value}</h3>
+      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{subtitle}</p>
+    </div>
+  </div>
+);
+
+const DemoRow = ({ icon, label, count, color, total }: { icon: any, label: string, count: number, color: string, total: number }) => (
+  <div className="space-y-1.5">
+    <div className="flex items-center justify-between text-[11px] font-black text-slate-600 uppercase tracking-widest">
+      <div className="flex items-center gap-2">
+        <span className={`${color} p-1 rounded text-white shadow-sm`}>{icon}</span>
+        {label}
+      </div>
+      <span>{count} <span className="text-slate-300 font-bold">/ {total}</span></span>
+    </div>
+    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden shadow-inner">
+      <div 
+        className={`${color} h-full transition-all duration-1000 ease-out shadow-sm`} 
+        style={{ width: `${total > 0 ? (count / total) * 100 : 0}%` }}
+      ></div>
+    </div>
   </div>
 );
