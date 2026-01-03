@@ -21,7 +21,8 @@ import {
   Star,
   Mail,
   MailCheck,
-  Info
+  FileText,
+  Download
 } from 'lucide-react';
 
 type DemographicFilter = 'All' | 'Has Men' | 'Has Women' | 'Has Children';
@@ -100,6 +101,99 @@ export const Guests: React.FC = () => {
     }), { men: 0, women: 0, children: 0, total: 0 });
   }, [filteredGuests]);
 
+  const handleExportCSV = () => {
+    if (filteredGuests.length === 0) return;
+    
+    const headers = ["Name", "City", "RSVP", "Men", "Women", "Children", "Total", "Relationship", "Transport", "Reference"];
+    const csvRows = filteredGuests.map(g => [
+      `"${g.name}"`,
+      `"${g.city}"`,
+      g.rsvpStatus,
+      g.men,
+      g.women,
+      g.children,
+      g.totalPersons,
+      g.relationship,
+      `"${g.ownCar}"`,
+      `"${g.invitedBy}"`
+    ].join(","));
+    
+    const csvContent = [headers.join(","), ...csvRows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `GuestList_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const rowsHtml = filteredGuests.map((g, i) => `
+      <tr>
+        <td style="font-size: 10px;">${i + 1}</td>
+        <td><b>${g.name}</b><br/><small style="color: #666;">${g.city}</small></td>
+        <td style="text-align: center;">${g.men}</td>
+        <td style="text-align: center;">${g.women}</td>
+        <td style="text-align: center;">${g.children}</td>
+        <td style="text-align: center; font-weight: bold;">${g.totalPersons}</td>
+        <td style="text-align: center;">${g.rsvpStatus}</td>
+      </tr>`).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>GuestNama - Registry Export</title>
+          <style>
+            body { font-family: 'Segoe UI', sans-serif; padding: 30px; color: #333; }
+            h2 { border-bottom: 2px solid #f59e0b; padding-bottom: 10px; color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 10px; border: 1px solid #eee; background: #f8fafc; font-size: 10px; text-transform: uppercase; }
+            td { padding: 10px; border: 1px solid #eee; font-size: 12px; }
+            .footer { margin-top: 20px; font-size: 10px; color: #999; text-align: right; }
+          </style>
+        </head>
+        <body>
+          <h2>Event Guest Summary</h2>
+          <p>Total Records: ${filteredGuests.length} | Generated: ${new Date().toLocaleString()}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Guest Details</th>
+                <th>Men</th>
+                <th>Women</th>
+                <th>Children</th>
+                <th>Total</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+            <tfoot>
+              <tr style="background: #fdfdfd; font-weight: bold;">
+                <td colspan="2">TOTAL CENSUS</td>
+                <td style="text-align: center;">${totals.men}</td>
+                <td style="text-align: center;">${totals.women}</td>
+                <td style="text-align: center;">${totals.children}</td>
+                <td style="text-align: center;">${totals.total}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+          <div class="footer">Document Powered by GuestNama Intelligence</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !user) return;
@@ -144,6 +238,15 @@ export const Guests: React.FC = () => {
           <p className="text-slate-400 text-[8px] font-black uppercase tracking-[0.2em]">{filteredGuests.length} Records</p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mr-2">
+             <button onClick={handleExportCSV} className="p-2.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all active:scale-90" title="Export CSV">
+               <Download className="w-4 h-4" />
+             </button>
+             <div className="w-[1px] h-6 bg-slate-100"></div>
+             <button onClick={handleExportPDF} className="p-2.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-all active:scale-90" title="Export PDF">
+               <FileText className="w-4 h-4" />
+             </button>
+          </div>
           <button onClick={() => setIsFormOpen(true)} className="bg-amber-500 text-white p-2.5 rounded-xl shadow-lg active:scale-95 transition-all">
             <Plus className="w-4 h-4" />
           </button>

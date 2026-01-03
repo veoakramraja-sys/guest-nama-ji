@@ -1,7 +1,7 @@
 
 /**
- * GuestNama Enterprise Backend - Professional Edition v2.2
- * Optimized for Mobile High-Density Intelligence & Invitation Tracking
+ * GuestNama Enterprise Backend - Professional Edition v2.3
+ * Optimized for Mobile High-Density Intelligence, Invitation Tracking & Demo Content
  */
 
 const CONFIG = {
@@ -36,9 +36,46 @@ function onOpen() {
   ui.createMenu('🚀 GuestNama Enterprise')
     .addItem('Initialize / Repair Tables', 'runSetup')
     .addItem('Generate Performance Report', 'checkHealth')
+    .addItem('Seed Wedding Demo Data', 'seedWeddingDemo')
     .addSeparator()
     .addItem('Clear Audit Logs', 'clearLogs')
     .addToUi();
+}
+
+function seedWeddingDemo() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert('Seed Demo Data?', 'This will add wedding-related sample finance and task entries. Continue?', ui.ButtonSet.YES_NO);
+  
+  if (response == ui.Button.YES) {
+    // We'll target the first user or system user for demo purposes if no user is specified,
+    // but usually this is called via API with a userId. 
+    // This UI trigger is just for manual admin use.
+    const systemUserId = CONFIG.SEED_ADMIN.id;
+    generateDemoContent(ss, systemUserId);
+    ui.alert('Demo content seeded successfully.');
+  }
+}
+
+function generateDemoContent(ss, userId) {
+  const financeData = [
+    { id: "f-1", userId, description: "Venue Booking Advance", amount: 150000, type: "Expense", category: "Venue", date: "2024-05-01" },
+    { id: "f-2", userId, description: "Bridal Jewelry Deposit", amount: 45000, type: "Expense", category: "Apparel", date: "2024-05-15" },
+    { id: "f-3", userId, description: "Catering Full Payment", amount: 280000, type: "Expense", category: "Food", date: "2024-06-10" },
+    { id: "f-4", userId, description: "Cash Gift from Uncle", amount: 50000, type: "Income", category: "Gift", date: "2024-06-12" },
+    { id: "f-5", userId, description: "Salami Collections", amount: 125000, type: "Income", category: "Gift", date: "2024-06-14" }
+  ];
+
+  const taskData = [
+    { id: "t-1", userId, title: "Book Wedding Hall & Decorator", description: "Finalize theme and guest seating plan", isCompleted: true, dueDate: "2024-04-15", priority: "High" },
+    { id: "t-2", userId, title: "Hire Wedding Photographer", description: "Portfolio check and booking for 3 days", isCompleted: true, dueDate: "2024-04-20", priority: "High" },
+    { id: "t-3", userId, title: "Finalize Invitation Card Design", description: "Proofread names and dates", isCompleted: false, dueDate: "2024-05-05", priority: "Medium" },
+    { id: "t-4", userId, title: "Order Bridal & Groom Outfits", description: "Visit designer for first measurement", isCompleted: false, dueDate: "2024-05-10", priority: "High" },
+    { id: "t-5", userId, title: "Plan Honeymoon Logistics", description: "Book flights and hotel", isCompleted: false, dueDate: "2024-05-25", priority: "Low" }
+  ];
+
+  financeData.forEach(item => addRow(ss, CONFIG.TABS.FINANCE, item));
+  taskData.forEach(item => addRow(ss, CONFIG.TABS.TASKS, item));
 }
 
 function logAction(userId, action, details) {
@@ -158,8 +195,13 @@ function doPost(e) {
         deleteRow(ss, CONFIG.TABS.TASKS, payload.taskId);
         responseData = { message: "Task Purged" };
         break;
+      case 'seedDemo': // NEW: Seeding action
+        generateDemoContent(ss, payload.userId);
+        logAction(payload.userId, "SEED_DEMO", "Wedding demo data created");
+        responseData = { message: "Demo content generated" };
+        break;
       case 'healthCheck':
-        responseData = { status: "online", version: "2.2.0", serverTime: new Date().toISOString() };
+        responseData = { status: "online", version: "2.3.0", serverTime: new Date().toISOString() };
         break;
       default:
         throw new Error("Action Restricted: " + action);
