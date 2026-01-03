@@ -17,11 +17,12 @@ export interface Guest {
   userId: string;
   name: string;
   phone: string;
-  rsvpStatus: 'Pending' | 'Confirmed' | 'Declined';
+  rsvpStatus: 'Pending' | 'Confirmed' | 'Declined' | 'Accepted' | 'Chances' | 'Maybe';
   checkedIn: boolean;
   eventDate: string;
-  group: 'Family' | 'Friends' | 'Colleagues' | 'Other';
+  group: 'Family' | 'Friends' | 'Colleagues' | 'Other' | 'Business' | 'Relative';
   vipStatus: boolean;
+  invitationRequired: boolean;
   city: string;
   men: number;
   women: number;

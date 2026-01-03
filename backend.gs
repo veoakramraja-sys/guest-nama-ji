@@ -1,7 +1,7 @@
 
 /**
- * GuestNama Enterprise Backend - Professional Edition v2
- * Features: Advanced Audit Logging, Health Monitoring, Atomic Transactions
+ * GuestNama Enterprise Backend - Professional Edition v2.2
+ * Optimized for Mobile High-Density Intelligence & Invitation Tracking
  */
 
 const CONFIG = {
@@ -16,7 +16,7 @@ const CONFIG = {
   },
   HEADERS: {
     Users: ["id", "phone", "name", "role", "createdAt", "passwordHash"],
-    Guests: ["id", "userId", "name", "phone", "rsvpStatus", "checkedIn", "eventDate", "group", "vipStatus", "city", "men", "women", "children", "totalPersons", "relationship", "ownCar", "invitedBy", "invitationSent", "notes"],
+    Guests: ["id", "userId", "name", "phone", "rsvpStatus", "checkedIn", "eventDate", "group", "vipStatus", "invitationRequired", "city", "men", "women", "children", "totalPersons", "relationship", "ownCar", "invitedBy", "invitationSent", "notes"],
     Finance: ["id", "userId", "description", "amount", "type", "category", "date"],
     Tasks: ["id", "userId", "title", "description", "isCompleted", "dueDate", "priority"],
     Logs: ["timestamp", "userId", "action", "details"]
@@ -158,8 +158,8 @@ function doPost(e) {
         deleteRow(ss, CONFIG.TABS.TASKS, payload.taskId);
         responseData = { message: "Task Purged" };
         break;
-      case 'healthCheck': // NEW: System monitoring
-        responseData = { status: "online", version: "2.0.0", serverTime: new Date().toISOString() };
+      case 'healthCheck':
+        responseData = { status: "online", version: "2.2.0", serverTime: new Date().toISOString() };
         break;
       default:
         throw new Error("Action Restricted: " + action);
