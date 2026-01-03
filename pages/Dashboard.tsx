@@ -19,7 +19,8 @@ import {
   User,
   UserPlus,
   Baby,
-  Activity
+  Activity,
+  Zap
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -101,6 +102,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
     { name: 'Children', value: data.guestStats.children, color: '#f59e0b' },
   ].filter(d => d.value > 0), [data.guestStats]);
 
+  const readinessScore = useMemo(() => {
+    const taskPart = data.taskStats.percentage;
+    const rsvpPart = data.guestStats.total > 0 ? (data.guestStats.confirmed / data.guestStats.total) * 100 : 0;
+    return Math.round((taskPart + rsvpPart) / 2);
+  }, [data]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Confirmed': return 'text-emerald-500 bg-emerald-50';
@@ -140,24 +147,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
         <StatCard title="Total Families" value={data.guestStats.total} subtitle={`${data.guestStats.confirmed} Confirmed`} icon={<Users className="w-5 h-5 text-indigo-500" />} color="hover:border-indigo-200 shadow-indigo-100" />
         <StatCard title="Wallet Balance" value={`Rs. ${data.financeStats.balance.toLocaleString('en-PK')}`} subtitle="Net Liquidity" icon={<Wallet className="w-5 h-5 text-emerald-500" />} color="hover:border-emerald-200 shadow-emerald-100" />
         <StatCard title="Check-ins" value={data.guestStats.checkedIn} subtitle="Guest Arrivals" icon={<CheckSquare className="w-5 h-5 text-amber-500" />} color="hover:border-amber-200 shadow-amber-100" />
-        <div className="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between group transition-all hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-50">
+        
+        <div className="bg-white p-7 rounded-[32px] border border-slate-200 shadow-sm flex flex-col justify-between group transition-all hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-50">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Action Progress</p>
-              <h3 className="text-3xl font-black text-[#0f172a] tracking-tighter">{data.taskStats.percentage}%</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Readiness Score</p>
+              <h3 className="text-3xl font-black text-[#0f172a] tracking-tighter">{readinessScore}%</h3>
             </div>
-            <div className="w-11 h-11 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner group-hover:scale-110 transition-transform">
-              <CheckSquare className="w-5 h-5" />
+            <div className="w-11 h-11 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shadow-inner group-hover:scale-110 transition-transform">
+              <Zap className="w-5 h-5" />
             </div>
           </div>
           <div className="space-y-2">
             <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden shadow-inner">
-              <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full transition-all duration-1000 ease-out" style={{ width: `${data.taskStats.percentage}%` }}></div>
+              <div 
+                className="bg-gradient-to-r from-amber-500 to-amber-600 h-full transition-all duration-1000 ease-out" 
+                style={{ width: `${readinessScore}%` }}
+              ></div>
             </div>
-            <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
-              <span>{data.taskStats.completed} Done</span>
-              <span>{data.taskStats.total} Total</span>
-            </div>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Target: 100% Prepared</p>
           </div>
         </div>
       </div>
@@ -167,7 +175,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
           <div className="w-full md:w-1/2 h-[300px] relative">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Population</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Population</p>
                 <p className="text-4xl font-black text-[#0f172a] tracking-tighter">{(data.guestStats.men + data.guestStats.women + data.guestStats.children)}</p>
               </div>
             </div>
@@ -198,8 +206,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
           
           <div className="w-full md:w-1/2 space-y-6">
             <div className="space-y-2">
-              <h2 className="text-2xl font-black text-[#0f172a] tracking-tight">Audience Breakdown</h2>
-              <p className="text-slate-400 text-sm font-medium">Demographic composition of your guest list</p>
+              <h2 className="text-2xl font-black text-[#0f172a] tracking-tight">Population Center</h2>
+              <p className="text-slate-400 text-sm font-medium">Demographic intensity mapping</p>
             </div>
             <div className="space-y-4">
               <DemoRow icon={<User className="w-4 h-4" />} label="Men" count={data.guestStats.men} color="bg-indigo-500" total={data.guestStats.men + data.guestStats.women + data.guestStats.children} />
@@ -209,36 +217,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
           </div>
         </div>
 
-        <div className="bg-[#0f172a] rounded-[40px] p-8 lg:p-10 text-white relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="bg-[#0f172a] rounded-[40px] p-8 lg:p-10 text-white relative overflow-hidden flex flex-col justify-between group">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 transition-all group-hover:bg-amber-500/20"></div>
           <div className="relative z-10">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Financial Summary</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8">Asset Liquidity</p>
             <div className="space-y-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500"><TrendingUp className="w-5 h-5" /></div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Revenue</p>
-                    <p className="text-xl font-bold tracking-tight">Rs. {data.financeStats.income.toLocaleString()}</p>
-                  </div>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Revenue Flow</span>
                 </div>
+                <p className="text-2xl font-bold tracking-tight">Rs. {data.financeStats.income.toLocaleString()}</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center text-rose-500"><TrendingDown className="w-5 h-5" /></div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Expenses</p>
-                    <p className="text-xl font-bold tracking-tight">Rs. {data.financeStats.expenses.toLocaleString()}</p>
-                  </div>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <TrendingDown className="w-4 h-4 text-rose-500" />
+                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Expense Overhead</span>
                 </div>
+                <p className="text-2xl font-bold tracking-tight">Rs. {data.financeStats.expenses.toLocaleString()}</p>
               </div>
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-white/5 relative z-10">
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Platform Status</p>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Platform Integrity</p>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-sm font-bold text-emerald-500">System Healthy</span>
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+              <span className="text-sm font-bold text-emerald-500">Cloud Sync Active</span>
             </div>
           </div>
         </div>
@@ -248,13 +252,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
         <div className="bg-white rounded-[40px] border border-slate-200 shadow-xl shadow-slate-200/20 flex flex-col overflow-hidden group">
           <div className="p-8 lg:px-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/20">
             <h2 className="font-black text-[#0f172a] flex items-center gap-3 tracking-tight">
-              <Users className="w-6 h-6 text-amber-500" /> Recent Activity
+              <Users className="w-6 h-6 text-amber-500" /> Recent Arrivals
             </h2>
             <button 
               onClick={onNavigateToGuests} 
-              className="text-xs font-black text-amber-500 hover:text-amber-600 flex items-center gap-2 group/btn cursor-pointer uppercase tracking-widest"
+              className="text-xs font-black text-amber-500 hover:text-amber-600 flex items-center gap-2 group/btn cursor-pointer uppercase tracking-widest transition-all hover:gap-3"
             >
-              Directory <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+              Directory <ArrowRight className="w-4 h-4" />
             </button>
           </div>
           <div className="p-4 lg:p-6 divide-y divide-slate-50">
@@ -279,14 +283,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
         <div className="bg-white rounded-[40px] border border-slate-200 shadow-xl shadow-slate-200/20 flex flex-col overflow-hidden group">
           <div className="p-8 lg:px-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/20">
             <h2 className="font-black text-[#0f172a] flex items-center gap-3 tracking-tight">
-              <AlertCircle className="w-6 h-6 text-indigo-500" /> Event Readiness
+              <AlertCircle className="w-6 h-6 text-indigo-500" /> Operational Readiness
             </h2>
           </div>
           <div className="p-4 lg:p-6 divide-y divide-slate-50">
             {data.urgentTasks.length > 0 ? data.urgentTasks.map(task => (
               <div key={task.id} className="py-5 px-4 flex items-center justify-between group/task hover:bg-slate-50/80 rounded-2xl transition-all">
                 <div className="flex items-center gap-4">
-                  <div className={`w-3 h-3 rounded-full ${task.priority === 'High' ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'} shadow-lg`} />
+                  <div className={`w-3 h-3 rounded-full ${task.priority === 'High' ? 'bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]' : 'bg-amber-500'} `} />
                   <div className="min-w-0">
                     <p className="text-sm font-black text-slate-800 truncate">{task.title}</p>
                     <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1.5 uppercase tracking-widest mt-0.5"><Clock className="w-3 h-3" /> Due {task.dueDate}</p>
@@ -300,7 +304,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToGuests }) => {
                   <Check className="w-8 h-8" strokeWidth={3} />
                 </div>
                 <p className="text-[#0f172a] text-sm font-black uppercase tracking-[0.2em]">Operational Perfection</p>
-                <p className="text-slate-400 text-xs mt-1">All pre-event objectives met</p>
+                <p className="text-slate-400 text-xs mt-1">All event objectives synchronized</p>
               </div>
             )}
           </div>
@@ -314,7 +318,7 @@ const StatCard = ({ title, value, subtitle, icon, color }: any) => (
   <div className={`bg-white p-7 rounded-[32px] border border-slate-200 shadow-sm transition-all duration-500 flex flex-col justify-between group cursor-default ${color} hover:-translate-y-2 hover:shadow-2xl`}>
     <div className="flex justify-between items-start mb-6">
       <div className="w-11 h-11 bg-slate-50 group-hover:bg-white rounded-2xl flex items-center justify-center shrink-0 transition-all shadow-inner border border-transparent group-hover:border-slate-100 group-hover:shadow-lg">{icon}</div>
-      <div className="px-2 py-0.5 rounded-lg bg-slate-50 text-[9px] font-black text-slate-400 group-hover:bg-white group-hover:text-slate-600 transition-colors uppercase tracking-widest">Live</div>
+      <div className="px-2 py-0.5 rounded-lg bg-slate-50 text-[9px] font-black text-slate-400 group-hover:bg-white group-hover:text-slate-600 transition-colors uppercase tracking-widest">Active</div>
     </div>
     <div>
       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 transition-colors group-hover:text-slate-600">{title}</p>
