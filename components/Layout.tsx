@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../authContext';
 import { UserRole } from '../types';
@@ -38,7 +39,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
 
   if (user?.role === UserRole.ADMIN) {
     menuItems.push({ id: 'admin-stats', label: 'Analytics', icon: ShieldCheck, roles: [UserRole.ADMIN] });
-    menuItems.push({ id: 'user-management', label: 'User Directory', icon: UsersRound, roles: [UserRole.ADMIN] });
+    menuItems.push({ id: 'user-management', label: 'Users', icon: UsersRound, roles: [UserRole.ADMIN] });
   }
 
   const filteredItems = menuItems.filter(item => user && item.roles.includes(user.role));
@@ -46,7 +47,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
   const handleWhatsAppSend = () => {
     if (!feedback.trim()) return;
     const phoneNumber = "923498199472";
-    // Fixed: Property 'email' does not exist on type 'User'. Using 'phone' instead.
     const encodedText = encodeURIComponent(`*GuestNama Feedback*\n\nUser: ${user?.name}\nPhone: ${user?.phone}\n\nMessage:\n${feedback}`);
     window.open(`https://wa.me/${phoneNumber}?text=${encodedText}`, '_blank');
     setFeedback('');
@@ -60,25 +60,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
 
   return (
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden selection:bg-amber-100">
-      {/* Mobile Glassmorphism Toggle */}
-      {!isSidebarOpen && (
-        <button 
-          className="lg:hidden fixed top-5 right-5 z-[60] p-3.5 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-white/50 active:scale-90 transition-all cursor-pointer"
-          onClick={() => setSidebarOpen(true)}
-        >
-          <Menu className="w-6 h-6 text-[#0f172a]" />
-        </button>
-      )}
-
-      {/* Sidebar */}
+      {/* Sidebar - Desktop Only (Hidden on Mobile) */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50 w-[280px] bg-[#0f172a] text-slate-300 transform transition-transform duration-500 ease-in-out
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* Decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
            <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500 rounded-full blur-3xl translate-x-12 -translate-y-12"></div>
-           <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-600 rounded-full blur-3xl -translate-x-12 translate-y-12"></div>
         </div>
 
         <div className="flex flex-col h-full relative z-10">
@@ -87,7 +75,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
               <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shrink-0 shadow-lg shadow-amber-500/30">G</div>
               <span className="text-xl font-bold tracking-tight text-white">Guest<span className="text-amber-500">Nama</span></span>
             </div>
-            <button className="lg:hidden p-2 hover:bg-white/10 rounded-xl transition-colors cursor-pointer active:scale-90" onClick={() => setSidebarOpen(false)}>
+            <button className="lg:hidden p-2 hover:bg-white/10 rounded-xl transition-colors cursor-pointer" onClick={() => setSidebarOpen(false)}>
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -100,46 +88,31 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
                 className={`
                   w-full flex items-center justify-between px-5 py-4 text-sm font-bold rounded-2xl transition-all duration-300 cursor-pointer active:scale-[0.98]
                   ${activeTab === item.id 
-                    ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 translate-x-1' 
+                    ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' 
                     : 'text-slate-400 hover:text-white hover:bg-white/5'}
                 `}
               >
                 <div className="flex items-center gap-3.5">
-                  <item.icon className={`w-5 h-5 transition-transform duration-300 ${activeTab === item.id ? 'scale-110' : ''}`} />
+                  <item.icon className="w-5 h-5" />
                   {item.label}
                 </div>
-                {activeTab === item.id && <ChevronRight className="w-4 h-4 animate-in fade-in slide-in-from-left-2" />}
               </button>
             ))}
-
-            {/* Support Trigger Button */}
             <button
               onClick={() => setSupportModalOpen(true)}
-              className="w-full flex items-center gap-3.5 px-5 py-4 text-sm font-bold rounded-2xl text-slate-400 hover:text-amber-400 hover:bg-white/5 transition-all duration-300 mt-4 group cursor-pointer active:scale-[0.98]"
+              className="w-full flex items-center gap-3.5 px-5 py-4 text-sm font-bold rounded-2xl text-slate-400 hover:text-amber-400 hover:bg-white/5 transition-all duration-300 mt-4 group cursor-pointer"
             >
               <LifeBuoy className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-              Report & Feedback
+              Feedback
             </button>
           </nav>
 
-          <div className="p-6 mt-auto">
-            <div className="flex items-center p-4 mb-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white font-black text-lg mr-4 shadow-lg border border-white/10">
-                {user?.name.charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">{user?.name}</p>
-                <p className="text-[10px] text-amber-500 uppercase tracking-widest font-black flex items-center gap-1.5 mt-0.5">
-                  <ShieldCheck className="w-3 h-3" />
-                  {user?.role}
-                </p>
-              </div>
-            </div>
+          <div className="p-6 mt-auto border-t border-white/5">
             <button 
               onClick={() => { logout(); setSidebarOpen(false); }}
               className="w-full flex items-center px-5 py-4 text-sm font-bold text-slate-400 hover:text-rose-400 hover:bg-rose-400/5 rounded-2xl transition-all group active:scale-95 cursor-pointer"
             >
-              <LogOut className="w-4 h-4 mr-3.5 group-hover:-translate-x-1 transition-transform" />
+              <LogOut className="w-4 h-4 mr-3.5" />
               Sign Out
             </button>
           </div>
@@ -148,16 +121,74 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        {isSidebarOpen && (
-          <div className="fixed inset-0 bg-[#0f172a]/80 backdrop-blur-md z-40 lg:hidden animate-in fade-in duration-300" onClick={() => setSidebarOpen(false)} />
-        )}
-        
-        <div className="flex-1 overflow-y-auto p-4 lg:p-12 relative">
-          {/* Top header spacing for mobile toggle */}
-          <div className="lg:hidden h-14"></div>
-          
-          <div className="max-w-6xl mx-auto page-transition pb-12">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-12 relative pb-24 lg:pb-12">
+          {/* Mobile Profile Header */}
+          <div className="lg:hidden flex items-center justify-between mb-8 pt-4">
+             <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white font-bold shadow-lg">
+                  {user?.name.charAt(0)}
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-[#0f172a]">{user?.name}</h4>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">{user?.role}</p>
+                </div>
+             </div>
+             <button 
+               className="p-3 bg-white rounded-xl shadow-sm border border-slate-100"
+               onClick={() => setSupportModalOpen(true)}
+             >
+               <LifeBuoy className="w-5 h-5 text-slate-400" />
+             </button>
+          </div>
+
+          <div className="max-w-6xl mx-auto page-transition">
             {children}
+          </div>
+        </div>
+
+        {/* MOBILE BOTTOM NAVIGATION BAR */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-2 bg-gradient-to-t from-[#f8fafc] via-[#f8fafc] to-transparent pointer-events-none">
+          <div className="bg-[#0f172a]/95 backdrop-blur-xl rounded-[28px] p-2 flex items-center justify-between shadow-2xl border border-white/10 pointer-events-auto">
+            {menuItems.filter(item => item.id !== 'admin-stats' && item.id !== 'user-management').map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`
+                  flex-1 flex flex-col items-center justify-center py-3 px-1 rounded-2xl transition-all duration-300 relative
+                  ${activeTab === item.id ? 'text-amber-500 scale-110' : 'text-slate-500'}
+                `}
+              >
+                <item.icon className="w-6 h-6" />
+                <span className={`text-[9px] font-bold mt-1 uppercase tracking-widest ${activeTab === item.id ? 'opacity-100' : 'opacity-0'}`}>
+                  {item.label}
+                </span>
+                {activeTab === item.id && (
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-amber-500 rounded-full shadow-[0_0_10px_#f59e0b]"></div>
+                )}
+              </button>
+            ))}
+            
+            {/* Admin Toggle in Bottom Nav if Admin */}
+            {user?.role === UserRole.ADMIN && (
+               <button
+                onClick={() => setActiveTab(activeTab === 'admin-stats' ? 'dashboard' : 'admin-stats')}
+                className={`
+                  flex-1 flex flex-col items-center justify-center py-3 px-1 rounded-2xl transition-all duration-300
+                  ${activeTab === 'admin-stats' || activeTab === 'user-management' ? 'text-indigo-400 scale-110' : 'text-slate-500'}
+                `}
+              >
+                <ShieldCheck className="w-6 h-6" />
+                <span className="text-[9px] font-bold mt-1 uppercase tracking-widest">Admin</span>
+              </button>
+            )}
+
+            <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
+            <button 
+              onClick={() => { if(confirm("Sign out from system?")) logout(); }}
+              className="flex-1 flex flex-col items-center justify-center py-3 text-slate-500 active:text-rose-500"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </main>
@@ -166,52 +197,35 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
       {isSupportModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#0f172a]/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setSupportModalOpen(false)} />
-          <div className="relative w-full max-w-lg bg-white rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="bg-[#0f172a] p-6 lg:p-8 text-white relative">
-              <div className="absolute top-0 right-0 p-4 lg:p-6">
-                <button onClick={() => setSupportModalOpen(false)} className="text-white/40 hover:text-white transition-colors cursor-pointer active:scale-90">
+          <div className="relative w-full max-w-lg bg-white rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto no-scrollbar">
+            <div className="bg-[#0f172a] p-6 lg:p-8 text-white">
+              <div className="flex justify-between items-center mb-6">
+                <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center shadow-xl">
+                  <MessageCircle className="w-6 h-6" />
+                </div>
+                <button onClick={() => setSupportModalOpen(false)} className="text-white/40 hover:text-white transition-colors cursor-pointer">
                   <X className="w-6 h-6" />
                 </button>
               </div>
-              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-amber-500 rounded-2xl flex items-center justify-center mb-4 lg:mb-6 shadow-xl shadow-amber-500/20">
-                <MessageCircle className="w-6 h-6 lg:w-7 lg:h-7" />
-              </div>
-              <h2 className="text-xl lg:text-2xl font-bold">Help & Support</h2>
-              <p className="text-slate-400 text-xs lg:text-sm mt-1 lg:mt-2">How can we make GuestNama better for you?</p>
+              <h2 className="text-xl font-bold">Feedback Hub</h2>
+              <p className="text-slate-400 text-xs mt-1">Help us evolve the GuestNama experience</p>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6 lg:p-8 space-y-6">
-              <div className="bg-slate-50 border border-slate-100 p-4 lg:p-5 rounded-2xl">
-                <p className="text-slate-700 text-xs lg:text-sm font-medium leading-relaxed">
-                  <span className="block mb-2 font-bold text-[#0f172a]">GuestNama ko behtar banane mein hamari madad karein!</span>
-                  Agar aapko istemal mein koi dushwari pesh aa rahi hai, ya aap naye features shamil karwana chahte hain, to nichay diye gaye box mein likhein aur WhatsApp par hum se rabta karein.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Your Message</label>
-                <textarea 
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition-all text-sm resize-none min-h-[120px]"
-                  placeholder="Enter your suggestions or report issues here..."
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                />
-              </div>
-
+              <textarea 
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition-all text-sm resize-none min-h-[140px]"
+                placeholder="Enter suggestions or report issues..."
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+              />
               <button 
                 onClick={handleWhatsAppSend}
                 disabled={!feedback.trim()}
-                className="w-full py-4 bg-[#25D366] hover:bg-[#128C7E] disabled:bg-slate-200 text-white font-bold rounded-2xl shadow-xl shadow-green-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98] group cursor-pointer"
+                className="w-full py-4 bg-[#25D366] hover:bg-[#128C7E] disabled:bg-slate-200 text-white font-bold rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] cursor-pointer"
               >
-                <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                <Send className="w-5 h-5" />
                 Send via WhatsApp
               </button>
-              
-              <p className="text-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                Fast Response • Direct Assistance
-              </p>
             </div>
           </div>
         </div>

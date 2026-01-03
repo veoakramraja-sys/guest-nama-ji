@@ -1,7 +1,7 @@
 
 /**
- * GuestNama Enterprise Backend - Professional Edition
- * Features: Audit Logging, Data Integrity, RBAC, and High-Speed Sync
+ * GuestNama Enterprise Backend - Professional Edition v2
+ * Features: Advanced Audit Logging, Health Monitoring, Atomic Transactions
  */
 
 const CONFIG = {
@@ -12,14 +12,14 @@ const CONFIG = {
     GUESTS: "Guests",
     FINANCE: "Finance",
     TASKS: "Tasks",
-    LOGS: "Logs" // NEW: Audit Log Tab
+    LOGS: "Logs"
   },
   HEADERS: {
     Users: ["id", "phone", "name", "role", "createdAt", "passwordHash"],
     Guests: ["id", "userId", "name", "phone", "rsvpStatus", "checkedIn", "eventDate", "group", "vipStatus", "city", "men", "women", "children", "totalPersons", "relationship", "ownCar", "invitedBy", "invitationSent", "notes"],
     Finance: ["id", "userId", "description", "amount", "type", "category", "date"],
     Tasks: ["id", "userId", "title", "description", "isCompleted", "dueDate", "priority"],
-    Logs: ["timestamp", "userId", "action", "details"] // NEW: Logging schema
+    Logs: ["timestamp", "userId", "action", "details"]
   },
   SEED_ADMIN: {
     id: "admin-001",
@@ -38,8 +38,6 @@ function onOpen() {
     .addItem('Generate Performance Report', 'checkHealth')
     .addSeparator()
     .addItem('Clear Audit Logs', 'clearLogs')
-    .addSeparator()
-    .addItem('⚠️ Emergency System Reset', 'showResetWarning')
     .addToUi();
 }
 
@@ -55,11 +53,26 @@ function logAction(userId, action, details) {
   }
 }
 
+function checkHealth() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  let report = "GuestNama System Health Report\n\n";
+  
+  Object.keys(CONFIG.TABS).forEach(key => {
+    const tabName = CONFIG.TABS[key];
+    const sheet = ss.getSheetByName(tabName);
+    const rows = sheet ? sheet.getLastRow() - 1 : 0;
+    report += `• ${tabName}: ${rows} records\n`;
+  });
+  
+  ui.alert('System Integrity Report', report, ui.ButtonSet.OK);
+}
+
 function runSetup() {
   const ui = SpreadsheetApp.getUi();
   try {
-    const ss = getOrCreateDatabase();
-    ui.alert('✅ System Initialized', 'All tabs secured. Audit logging enabled.', ui.ButtonSet.OK);
+    getOrCreateDatabase();
+    ui.alert('✅ System Initialized', 'Database structure verified and secured.', ui.ButtonSet.OK);
   } catch (e) {
     ui.alert('❌ Setup Failed', e.toString(), ui.ButtonSet.OK);
   }
@@ -68,9 +81,9 @@ function runSetup() {
 function clearLogs() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(CONFIG.TABS.LOGS);
-  if (sheet) {
-    sheet.getRange(2, 1, sheet.getLastRow(), CONFIG.HEADERS.Logs.length).clear();
-    logAction("SYSTEM", "LOG_CLEAR", "Manual log clearance");
+  if (sheet && sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, CONFIG.HEADERS.Logs.length).clear();
+    logAction("SYSTEM", "LOG_CLEAR", "Audit log reset");
   }
 }
 
@@ -83,7 +96,6 @@ function doPost(e) {
     const { action, payload } = request;
     let responseData = null;
 
-    // Track user context for logging
     const actingUser = payload.userId || "GUEST_OR_SYSTEM";
 
     switch (action) {
@@ -145,6 +157,9 @@ function doPost(e) {
       case 'deleteTask':
         deleteRow(ss, CONFIG.TABS.TASKS, payload.taskId);
         responseData = { message: "Task Purged" };
+        break;
+      case 'healthCheck': // NEW: System monitoring
+        responseData = { status: "online", version: "2.0.0", serverTime: new Date().toISOString() };
         break;
       default:
         throw new Error("Action Restricted: " + action);
