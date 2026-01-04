@@ -202,7 +202,6 @@ export const Guests: React.FC = () => {
     
     if (!formData.name.trim() || !user) return;
     
-    // Validation Fix: Prevent negative counts or empty guests
     if (formData.men < 0 || formData.women < 0 || formData.children < 0) {
       setFormError('Guest counts cannot be negative.');
       return;
@@ -256,7 +255,7 @@ export const Guests: React.FC = () => {
   };
 
   return (
-    <div className="space-y-3 lg:space-y-6 animate-in fade-in duration-500 pb-20 max-h-screen overflow-y-auto no-scrollbar">
+    <div className="space-y-3 lg:space-y-6 animate-in fade-in duration-500 pb-40 lg:pb-24 max-h-screen overflow-y-auto no-scrollbar">
       {/* HEADER */}
       <div className="flex items-center justify-between px-2 pt-1">
         <div>
@@ -365,14 +364,26 @@ export const Guests: React.FC = () => {
         ))}
       </div>
 
-      {/* MINI FOOTER TOTALS */}
+      {/* MINI FOOTER TOTALS - Adjusted for better mobile clearance */}
       {filteredGuests.length > 0 && (
-        <div className="fixed bottom-20 left-4 right-4 bg-[#0f172a] text-white rounded-xl p-2 flex items-center justify-between px-6 shadow-2xl z-40">
-           <div className="text-center"><p className="text-[6px] text-slate-400 uppercase font-black">M</p><p className="text-[10px] font-black">{totals.men}</p></div>
-           <div className="text-center"><p className="text-[6px] text-slate-400 uppercase font-black">W</p><p className="text-[10px] font-black">{totals.women}</p></div>
-           <div className="text-center"><p className="text-[6px] text-slate-400 uppercase font-black">C</p><p className="text-[10px] font-black">{totals.children}</p></div>
-           <div className="h-4 w-[1px] bg-white/10"></div>
-           <div className="text-center"><p className="text-[6px] text-amber-400 uppercase font-black">INVITED</p><p className="text-xs font-black text-amber-500">{totals.total}</p></div>
+        <div className="fixed bottom-[84px] lg:bottom-10 left-4 right-4 bg-[#0f172a] text-white rounded-2xl p-2.5 flex items-center justify-between px-6 shadow-2xl z-40 animate-in slide-in-from-bottom duration-500 border border-white/5 backdrop-blur-md">
+           <div className="text-center">
+             <p className="text-[6px] text-slate-400 uppercase font-black tracking-widest">Men</p>
+             <p className="text-[11px] font-black">{totals.men}</p>
+           </div>
+           <div className="text-center">
+             <p className="text-[6px] text-slate-400 uppercase font-black tracking-widest">Women</p>
+             <p className="text-[11px] font-black">{totals.women}</p>
+           </div>
+           <div className="text-center">
+             <p className="text-[6px] text-slate-400 uppercase font-black tracking-widest">Kids</p>
+             <p className="text-[11px] font-black">{totals.children}</p>
+           </div>
+           <div className="h-5 w-[1px] bg-white/10 mx-1"></div>
+           <div className="text-center">
+             <p className="text-[6px] text-amber-400 uppercase font-black tracking-[0.2em]">Invited</p>
+             <p className="text-xs font-black text-amber-500">{totals.total}</p>
+           </div>
         </div>
       )}
 
